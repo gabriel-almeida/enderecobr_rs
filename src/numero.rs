@@ -7,6 +7,15 @@ pub fn criar_padronizador_numeros() -> Padronizador {
     padronizador
         // Regexp adicional: remove espaços em branco repetidos
         .adicionar(r"\s{2,}", " ")
+        // Remove tudo que começa ou termina com qualquer coisa que não seja número ou texto
+        .adicionar(r"(^[^A-Z0-9]+|[^A-Z0-9]+$)", "")
+        // Remove prefixo de número
+        .adicionar(
+            r"^N(O|OS|\.O|U|UM|NUMERO| )?( |\.|:| |O|-|\*)*([0-9]+)",
+            "$3",
+        )
+        // Caso de borda não pego na expressão anterior: quando o número está colado no prefixo
+        // .adicionar(r"^NO?([0-9]+)", "$1")
         // Regexp Original: (?<!\.)\b0+(\d+)\b
         // 015 -> 15, 00001 -> 1, 0180 0181 -> 180 181, mas não 1.028 -> 1.28
         // A ideia da regexp original é tirar zeros à esquerda que não sejam separadores de milhar.
@@ -15,8 +24,12 @@ pub fn criar_padronizador_numeros() -> Padronizador {
         // separador de milhar
         .adicionar(r"(\d+)\.(\d{3})", "$1$2")
         // SN ou S.N. ou S N ou .... -> S/N
-        .adicionar(r"S\.?( |\/)?N(O|º)?\.?", "S/N")
-        .adicionar(r"SEM NUMERO", "S/N")
+        .adicionar(
+            r"^S(E|EM)?(\/|;|-|\\|\.| )*(N|N\.|M)?(A|O|E|U|C|R|S|UM|UME|UMER|UMERO)?(0| |º|\.)*$",
+            "S/N",
+        )
+        .adicionar(r"^N(AO|O)? TEM$", "S/N")
+        .adicionar(r"^(SEM NUMERO|NULL|NA|IGNORADO)$", "S/N")
         .adicionar(r"^(X|0|-)+$", "S/N")
         // Regexp adicional: string vazia => S/N
         .adicionar("^$", "S/N");

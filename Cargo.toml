@@ -51,14 +51,14 @@ experimental = ["crfsuite"]
 cli = ["polars", "clap"]
 
 [dependencies]
-clap = { version = "4.5.54", features = ["derive"], optional = true }
-crfsuite = { version = "0.3.1", optional = true}
+clap = { version = "4.6.1", features = ["derive"], optional = true }
+crfsuite = { version = "0.3.2", optional = true}
 diacritics = "0.2.2"
 itertools = "0.14.0"
 # Feature de timezone é temporário até corrigirem a issue abaixo
 # https://github.com/pola-rs/polars/issues/25148
-polars = { version = "0.52.0", features = ["lazy", "parquet", "timezones"], optional = true }
-regex = "1.11.1"
+polars = { version = "0.53.0", features = ["lazy", "parquet", "timezones"], optional = true }
+regex = "1.12.3"
 rustc-hash = "2.1.2"
 unicode-normalization = "0.1.25"
 
