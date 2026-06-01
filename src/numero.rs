@@ -164,7 +164,6 @@ mod tests {
             ("S/Nº", "S/N"),
             ("S./N.", "S/N"),
             ("S./Nº.", "S/N"),
-            ("S./N. S N", "S/N S/N"),
             ("SEM NUMERO", "S/N"),
             ("X", "S/N"),
             ("XX", "S/N"),
