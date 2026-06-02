@@ -14,8 +14,6 @@ pub fn criar_padronizador_numeros() -> Padronizador {
             r"^N(O|OS|\.O|U|UM|NUMERO| )?( |\.|:| |O|-|\*)*([0-9]+)",
             "$3",
         )
-        // Caso de borda não pego na expressão anterior: quando o número está colado no prefixo
-        // .adicionar(r"^NO?([0-9]+)", "$1")
         // Regexp Original: (?<!\.)\b0+(\d+)\b
         // 015 -> 15, 00001 -> 1, 0180 0181 -> 180 181, mas não 1.028 -> 1.28
         // A ideia da regexp original é tirar zeros à esquerda que não sejam separadores de milhar.
@@ -25,7 +23,7 @@ pub fn criar_padronizador_numeros() -> Padronizador {
         .adicionar(r"(\d+)\.(\d{3})", "$1$2")
         // SN ou S.N. ou S N ou .... -> S/N
         .adicionar(
-            r"^S(E|EM)?(\/|;|-|\\|\.| )*(N|N\.|M)?(A|O|E|U|C|R|S|UM|UME|UMER|UMERO)?(0| |º|\.)*$",
+            r"^(S|SE|SEM)?(\/|;|-|\\|\.| )*(N|N\.|M)?(A|O|E|U|C|R|S|UM|UME|UMER|UMERO)?(0| |º|\.)*$",
             "S/N",
         )
         .adicionar(r"^N(AO|O)? TEM$", "S/N")
@@ -146,7 +144,7 @@ mod tests {
         let test_cases = [
             (" 1 ", "1"),
             ("s/n", "S/N"),
-            ("NÚMERO", "NUMERO"),
+            ("NÚMERO", "S/N"),
             ("0001", "1"),
             ("01 02", "1 2"),
             ("20.100", "20100"),
