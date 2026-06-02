@@ -9,6 +9,7 @@ use regex::{Regex, RegexSet};
 pub mod bairro;
 pub mod cep;
 pub mod complemento;
+pub mod dado_faltante;
 pub mod estado;
 pub mod logradouro;
 pub mod metaphone;
@@ -362,11 +363,31 @@ pub fn normalizar(valor: &str) -> Cow<'_, str> {
         .collect()
 }
 
+/// Wrapper fino sobre o RegexSet para permitir localizar padrões rapidamente.
+#[derive(Default)]
+pub struct IdentificadorPadroes {
+    padroes: Vec<String>,
+    regex_set: RegexSet,
+}
+
+impl IdentificadorPadroes {
+    pub fn adicionar(&mut self, regexs: &[String]) -> &mut Self {
+        self.padroes.extend(regexs.iter().map(|x| x.to_owned()));
+        self.regex_set = RegexSet::new(self.padroes.iter()).unwrap();
+        self
+    }
+
+    pub fn identificar(&self, valor: &str) -> bool {
+        self.regex_set.is_match(valor)
+    }
+}
+
 pub use bairro::padronizar_bairros;
 pub use cep::padronizar_cep;
 pub use cep::padronizar_cep_leniente;
 pub use cep::padronizar_cep_numerico;
 pub use complemento::padronizar_complementos;
+pub use dado_faltante::identificar_dado_faltante;
 pub use estado::padronizar_estados_para_codigo;
 pub use estado::padronizar_estados_para_nome;
 pub use estado::padronizar_estados_para_sigla;
@@ -399,6 +420,7 @@ pub fn obter_padronizador_por_tipo(tipo: &str) -> Result<fn(&str) -> String, &st
         "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or("".to_string())),
         "cep_leniente" => Ok(padronizar_cep_leniente),
         "metaphone" => Ok(metaphone::metaphone),
+        "dado_faltante" => Ok(|x| identificar_dado_faltante(x).to_string()),
 
         #[cfg(feature = "experimental")]
         "completo" => Ok(padronizar_endereco_bruto),
