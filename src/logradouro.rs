@@ -76,11 +76,13 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r"^(PARQUE|RUA|RODOVIA) (PARQUE|P((A?R)?Q|QU?E))\b- *", "PARQUE ") // mesmo caso de travessa
 
         .adicionar(r"^ALA?\b(\.|,)?", "ALAMEDA")
+        .adicionar(r"^ALAM\b(\.|,)?", "ALAMEDA") // ALAM (4 letras) -> ALAMEDA; ALM (3) mantém-se igual ao snapshot
         .adicionar(r"^ALAMEDA (ALAMEDA|ALA?)\b(\.|,)?", "ALAMEDA") // mesmo caso de travessa
         .adicionar(r"^RODOVIA (ALAMEDA|ALA)\b(\.|,)?", "ALAMEDA") // RODOVIA precisa ser separado porque nesse caso nao podemos mudar RODOVIA AL pra ALAMEDA, ja que pode ser uma rodovia estadual de alagoas
         .adicionar(r"^ALAMEDA\b(-|,|\.) *", "ALAMEDA ")
         .adicionar(r"^(ALAMEDA|RUA) (ALAMEDA|ALA?)\b- *", "ALAMEDA ") // mesmo caso de travessa
         .adicionar(r"^RODOVIA (ALAMEDA|ALA)\b- *", "ALAMEDA ") // mesmo caso acima
+        .adicionar(r"^SIT\b(\.|,)?", "SITIO")
 
         .adicionar(r"^LOT\b(\.|,)?", "LOTEAMENTO")
         .adicionar(r"^(LOTEAMENTO|RUA|RODOVIA) LOT\b(\.|,)?", "LOTEAMENTO")

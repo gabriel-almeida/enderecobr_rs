@@ -9,7 +9,7 @@ SNAPSHOT_BASE_URL = https://huggingface.co/datasets/galmeida/enderecobr_rs/resol
 
 SNAPSHOT_FILES = complemento_bruto.csv complemento_snapshot.csv localidade_bruto.csv localidade_snapshot.csv logradouro_bruto.csv logradouro_snapshot.csv municipio_bruto.csv municipio_snapshot.csv numero_bruto.csv numero_snapshot.csv uf_bruto.csv uf_snapshot.csv
 
-.PHONY: hf-publicar-dataset hf-publicar-snapshot-test snapshot-criar-bruto snapshot-download
+.PHONY: hf-publicar-dataset hf-publicar-snapshot-test snapshot-criar-bruto snapshot-download cnefe-download cnefe-exportar
 
 ### Envio para o HF Hub
 
@@ -88,6 +88,31 @@ $(DIR_SNAPSHOTS)/%.csv:
 
 # Download de todos os snapshots, baseado no target anterior (by ChatGPT).
 snapshot-download: $(SNAPSHOT_FILES:%=$(DIR_SNAPSHOTS)/%)
+### CNEFE (corpus autoritativo v0.4.1 do IBGE, normalizado com enderecobr_rs)
+
+CNEFE_RELEASE = v0.4.1
+DIR_CNEFE = $(DIR_DADOS)/cnefe
+
+$(DIR_CNEFE)/municipio_logradouro.parquet:
+	mkdir -p $(DIR_CNEFE)
+	curl -L -o $@ 'https://github.com/ipeaGIT/padronizacao_cnefe/releases/download/$(CNEFE_RELEASE)/municipio_logradouro.parquet'
+
+cnefe-download: $(DIR_CNEFE)/municipio_logradouro.parquet
+
+# Conjunto canônico CNEFE (estado, municipio, logradouro) — já normalizado com enderecobr_rs.
+$(DIR_CNEFE)/logradouro_canonicos.tsv: $(DIR_CNEFE)/municipio_logradouro.parquet
+	duckdb -c "COPY (SELECT estado, municipio, logradouro FROM read_parquet('$<')) TO '$@' (FORMAT CSV, DELIMITER '\t', HEADER false);"
+
+# Amostra de pareamento a partir do CNEAS (uf, municipio, logradouro crus).
+$(DIR_CNEFE)/amostra_pareamento.parquet: $(DIR_INTERMEDIARIOS)/cneas.parquet
+	mkdir -p $(DIR_CNEFE)
+	duckdb -c "COPY (SELECT uf, municipio, logradouro FROM read_parquet('$<') WHERE logradouro IS NOT NULL AND municipio IS NOT NULL AND uf IS NOT NULL USING SAMPLE 200000) TO '$@' (FORMAT PARQUET);"
+
+$(DIR_CNEFE)/amostra_pareamento.tsv: $(DIR_CNEFE)/amostra_pareamento.parquet
+	duckdb -c "COPY (SELECT uf, municipio, logradouro FROM read_parquet('$<')) TO '$@' (FORMAT CSV, DELIMITER '\t', HEADER false);"
+
+cnefe-exportar: $(DIR_CNEFE)/logradouro_canonicos.tsv $(DIR_CNEFE)/amostra_pareamento.tsv
+
 
 # Força criação do novo dataset de snapshot.
 snapshot-criar-bruto:
