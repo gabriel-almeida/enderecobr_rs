@@ -280,7 +280,15 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r"\b(\d+) DE? SET(EMBRO)?\b", "$1 DE SETEMBRO")
         .adicionar(r"\b(\d+) DE? OUT(UBRO)?\b", "$1 DE OUTUBRO")
         .adicionar(r"\b(\d+) DE? NOV(EMBRO)?\b", "$1 DE NOVEMBRO")
-        .adicionar(r"\b(\d+) DE? DEZ(EMBRO)?\b", "$1 DE DEZEMBRO");
+        .adicionar(r"\b(\d+) DE? DEZ(EMBRO)?\b", "$1 DE DEZEMBRO")
+        // Experimentos: pontuação residual de tipo e abreviações
+        .adicionar(r"^([A-Z]+)\s*[\.:]+\s*", "$1 ") // RUA: / AV.: / RUA.: -> forma sem dois-pontos
+        .adicionar(r"\bPOV\b\.?", "POVOADO")
+        .adicionar(r"\bCH\b\.?", "CHACARA")
+        // Experimentos (autoresearch): pontuação/anotações residuais ao final da string
+        .adicionar(r"\s*[,;:]+\s*$", "")
+        .adicionar(r"\s*\([^()]*\)\s*$", "")
+        .adicionar(r"\s*-+\s*$", "");
 
     // ALM é um caso complicado, pode ser alameda ou almirante. Inclusive no mesmo endereço podem aparecer os dois rs
 

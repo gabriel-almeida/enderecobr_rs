@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::rc::Rc;
 use std::time::Instant;
+use std::collections::HashSet;
 
 use clap::Parser;
 use enderecobr_rs::complemento::criar_padronizador_complemento;
@@ -328,6 +329,135 @@ fn dump_base(campo: &str) -> Result<(), Box<dyn Error>> {
     println!("Base seed escrita em {}", out_path.display());
     Ok(())
 }
+/// Lista os padrões novos (status != "base") do TSV em relação ao espelho base do core
+/// (`obter_pares`), mostrando quantas regras base existem, quais são candidatas e se alguma
+/// regra base do core está ausente no TSV (deriva do espelho).
+fn relatorio_regras(path: &Path) -> Result<(), String> {
+    let campo = campo_do_tsv(path)?;
+    let core_pad: Padronizador = match campo.as_str() {
+        "logr" => criar_padronizador_logradouros(),
+        "comp" => criar_padronizador_complemento(),
+        _ => {
+            return Err(format!(
+                "Relatório só suporta campos logr/comp (recebido: {})",
+                campo
+            ))
+        }
+    };
+    let core_base: HashSet<(String, String, Option<String>)> = core_pad
+        .obter_pares()
+        .into_iter()
+        .map(|(r, s, i)| (r.to_string(), s.to_string(), i.map(|x| x.to_string())))
+        .collect();
+
+    let file = File::open(path).map_err(|e| e.to_string())?;
+    let mut base_count = 0usize;
+    let mut candidatas: Vec<(usize, String, String, Option<String>, String, String, String)> =
+        Vec::new();
+    let mut vistos_base: HashSet<(String, String, Option<String>)> = HashSet::new();
+
+    for (n, line) in BufReader::new(file).lines().enumerate() {
+        let line = line.map_err(|e| e.to_string())?;
+        if line.trim().is_empty() {
+            continue;
+        }
+        let cols: Vec<&str> = line.split('\t').collect();
+        if cols.len() < 5 {
+            continue;
+        }
+        if cols[3] == "dobrada" {
+            continue;
+        }
+        let regex = cols[0].to_string();
+        let subst = cols[1].to_string();
+        let ignorar = if cols[2].is_empty() {
+            None
+        } else {
+            Some(cols[2].to_string())
+        };
+        let status = cols[3].to_string();
+        let razao = cols.get(5).copied().unwrap_or("").to_string();
+        let autor = cols.get(6).copied().unwrap_or("").to_string();
+        let fonte = cols.get(7).copied().unwrap_or("").to_string();
+        let chave = (regex.clone(), subst.clone(), ignorar.clone());
+        if status == "base" {
+            base_count += 1;
+            vistos_base.insert(chave);
+        } else {
+            candidatas.push((
+                n + 1,
+                regex,
+                subst,
+                ignorar.clone(),
+                status,
+                razao,
+                autor,
+            ));
+            let _ = fonte;
+        }
+    }
+
+    let ausentes_no_tsv: Vec<(String, String, Option<String>)> = core_base
+        .iter()
+        .filter(|k| !vistos_base.contains(k))
+        .cloned()
+        .collect();
+
+    println!(
+        "RELATÓRIO DE PADRÕES — {} ({})",
+        campo,
+        path.display()
+    );
+    println!("Total de regras no TSV: {}", base_count + candidatas.len());
+    println!("  Base (espelho do core): {}", base_count);
+    println!("  Candidatas (status != base): {}", candidatas.len());
+    println!();
+    if candidatas.is_empty() {
+        println!("Nenhum padrão novo: todas as regras são base.");
+    } else {
+        println!("NOVOS PADRÕES (em relação ao core base):");
+        for (i, (linha, regex, subst, ignorar, status, razao, autor)) in
+            candidatas.iter().enumerate()
+        {
+            let ig = ignorar.clone().unwrap_or_default();
+            let no_core = !core_base.contains(&(regex.clone(), subst.clone(), ignorar.clone()));
+            println!("  #{}. [linha {}] status={}", i + 1, linha, status);
+            println!("      regex:    {}", regex);
+            println!("      subst:    {}", subst);
+            println!(
+                "      ignorar:  {}",
+                if ig.is_empty() {
+                    "(vazio)".to_string()
+                } else {
+                    ig
+                }
+            );
+            println!("      razão:    {}", razao);
+            println!("      autor:    {}", autor);
+            println!(
+                "      -> {}",
+                if no_core {
+                    "NOVO em relação ao core (aguardando port)".to_string()
+                } else {
+                    "já existe no core (redundante)".to_string()
+                }
+            );
+        }
+    }
+    println!();
+    if ausentes_no_tsv.is_empty() {
+        println!("Espelho do core íntegro: nenhuma regra base ausente no TSV.");
+    } else {
+        println!(
+            "ALERTA: {} regra(s) base do core AUSENTE(S) no TSV (deriva do espelho):",
+            ausentes_no_tsv.len()
+        );
+        for (r, s, i) in &ausentes_no_tsv {
+            println!("  - {} -> {} (ignorar: {:?})", r, s, i);
+        }
+    }
+    Ok(())
+}
 
 /// Compara um arquivo de exemplos (`bruto \t esperado`) entre o processador base e o das regras.
 fn avaliar_exemplos(
@@ -391,10 +521,22 @@ struct Args {
     /// Compara exemplos (`bruto \t esperado`) entre base e regras.
     #[arg(long)]
     exemplos: Option<String>,
+
+    /// Lista os padrões novos (status != base) do TSV em relação ao espelho base do core.
+    #[arg(long)]
+    relatorio_regras: bool,
 }
 
 fn main() -> Result<(), String> {
     let args = Args::parse();
+
+    if args.relatorio_regras {
+        let path = args
+            .regras
+            .clone()
+            .ok_or_else(|| "--relatorio-regras exige --regras <caminho>".to_string())?;
+        return relatorio_regras(Path::new(&path));
+    }
 
     if let Some(campo) = &args.dump_base {
         return dump_base(campo).map_err(|e| e.to_string());
