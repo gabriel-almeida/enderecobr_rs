@@ -38,7 +38,10 @@ fn criar_padronizador() -> Padronizador {
     let mut padronizador = Padronizador::default();
 
     padronizador.adicionar(r"\b0+(\d+)\b", "$1");
-    padronizador.adicionar(r"\s{2,}", " ");
+    // remove qualquer coisa que não seja letras, números ou espaço
+    padronizador.adicionar(r"[^ 0-9A-Z]", "");
+    padronizador.adicionar(r"\s{2,}", " "); // reduz os espaços em branco
+    padronizador.adicionar(r"^\s+|\s+$", ""); // faz um trim improvisado
 
     padronizador.preparar();
     padronizador
@@ -60,6 +63,8 @@ fn criar_padronizador() -> Padronizador {
 /// assert_eq!(padronizar_estados_para_sigla(""), "");
 /// assert_eq!(padronizar_estados_para_sigla("me"), "");
 /// assert_eq!(padronizar_estados_para_sigla("maranhao"), "MA");
+/// assert_eq!(padronizar_estados_para_sigla("banana"), "");
+/// assert_eq!(padronizar_estados_para_sigla("@  @  @ Maranhão !!!"), "MA")
 /// ```
 ///
 /// # Detalhes
@@ -93,6 +98,8 @@ pub fn padronizar_estados_para_sigla(valor: &str) -> &'static str {
 /// assert_eq!(padronizar_estados_para_codigo(""), "");
 /// assert_eq!(padronizar_estados_para_codigo("me"), "");
 /// assert_eq!(padronizar_estados_para_codigo("maranhao"), "21");
+/// assert_eq!(padronizar_estados_para_codigo("banana"), "");
+/// assert_eq!(padronizar_estados_para_codigo("@  @  @ Maranhão !!!"), "21");
 /// ```
 ///
 /// # Detalhes
@@ -127,6 +134,7 @@ pub fn padronizar_estados_para_codigo(valor: &str) -> &'static str {
 /// assert_eq!(padronizar_estados_para_nome(""), "");
 /// assert_eq!(padronizar_estados_para_nome("me"), "");
 /// assert_eq!(padronizar_estados_para_nome("maranhao"), "MARANHAO");
+/// assert_eq!(padronizar_estados_para_nome("@  @  @ Maranhão !!!"), "MARANHAO");
 /// ```
 ///
 /// # Detalhes
