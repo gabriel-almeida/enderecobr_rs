@@ -11,9 +11,11 @@ pub fn criar_padronizador_metaphone() -> Padronizador {
 
     padronizador
         .adicionar("[^A-Z ]+", "") // Remove non space nor letter characters
-        // Remove silent 'H'  at the beggining of each word. .
+        // Remove silent 'H'  at the beggining of each word.
         // Example: "Helena Silva" -> "ELENA SILVA"
         .adicionar(r"\bH", "")
+        // Resolve casos como THIAGO ou THOME
+        .adicionar(r"\bTH", "T")
         // Phonetic Simplification: similar digraphs
         // Transforms common sounding digraphs to simplify their phonetic representation.
         .adicionar("LH", "1")
@@ -165,6 +167,6 @@ mod tests {
 
     #[test]
     fn padroniza_corretamente() {
-        assert_eq!(metaphone("MARYA CHAVIER HELENA PHILIPE CALHEIROS FILHA MANHA CHICO SCHMIDT SCENA ESCOVA QUILO MAÇÃ"), "MARIA XAVIER ELENA FILIPE KA1EIROS FI1A MA3A XIKO SXMIDT SENA ESKOVA KILO MASA");
+        assert_eq!(metaphone("MARYA CHAVIER HELENA PHILIPE CALHEIROS FILHA MANHA CHICO SCHMIDT SCENA ESCOVA QUILO MAÇÃ THIAGO"), "MARIA XAVIER ELENA FILIPE KA1EIROS FI1A MA3A XIKO SXMIDT SENA ESKOVA KILO MASA TIAGO");
     }
 }

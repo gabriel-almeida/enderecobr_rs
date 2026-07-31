@@ -137,6 +137,13 @@ where
             "Os arquivos com os dados brutos e de snapshot têm tamanhos diferentes."
         );
 
+        let Some(primeiro) = valores_brutos.first() else {
+            return Ok("Valores do snapshot vazios.".to_string());
+        };
+
+        // Pequeno aquecimento para calcular melhor os tempos.
+        (self.processador)(primeiro);
+
         let inicio = Instant::now();
         let res: Vec<_> = valores_brutos
             .iter()
