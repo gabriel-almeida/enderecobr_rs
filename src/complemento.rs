@@ -35,6 +35,10 @@ pub fn criar_padronizador_complemento() -> Padronizador {
 
         .adicionar(r"^I{4,}$", "") // IIII+
         .adicionar(r"^X{3,}$", "") // XXX+
+
+        // Complemento começa com OUTROS: caso de erro comum
+        .adicionar(r"^OUTROS\b", "")
+
         .adicionar(r"\bQD?-?(\d+)-?LT?-?(\d+)-?CS?-?(\d+)\b", "QUADRA $1 LOTE $2 CASA $3")
       .adicionar(r"\bQD?-?(\d+)-?CS?-?(\d+)-?LT?-?(\d+)\b", "QUADRA $1 LOTE $3 CASA $2")
       .adicionar(r"\bCS?-?(\d+)-?LT?-?(\d+)-?QD?-?(\d+)\b", "QUADRA $3 LOTE $2 CASA $1")
