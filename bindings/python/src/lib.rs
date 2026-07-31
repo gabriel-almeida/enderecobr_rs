@@ -149,11 +149,11 @@ pub mod enderecobr {
     fn padronizar_complementos(valor: &str) -> String {
         enderecobr_rs::padronizar_complementos(valor)
     }
+
     #[pyfunction]
     fn padronizar_bairros(valor: &str) -> String {
         enderecobr_rs::padronizar_bairros(valor)
     }
-
     #[pyfunction]
     fn padronizar_municipios(valor: &str) -> String {
         enderecobr_rs::padronizar_municipios(valor)
@@ -186,7 +186,8 @@ pub mod enderecobr {
 
     #[pyfunction]
     fn padronizar_cep_numerico(valor: i32) -> PyResult<String> {
-        enderecobr_rs::cep::padronizar_cep_numerico(valor).map_err(pyo3::exceptions::PyValueError::new_err)
+        enderecobr_rs::cep::padronizar_cep_numerico(valor)
+            .map_err(pyo3::exceptions::PyValueError::new_err)
     }
 
     #[pyfunction]

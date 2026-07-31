@@ -262,9 +262,11 @@ def padronizar_municipios(valor: str) -> str:
     Returns
     -------
     str
-        Nome padronizado do município em caixa alta, sem acentos,
-        com correções ortográficas e atualizações conforme IBGE 2022.
-        Retorna string vazia se entrada for vazia.
+        Nome canônico do município em caixa alta, sem acentos, com correções
+        ortográficas e atualizações conforme o IBGE 2022. **Valores que não
+        casem com nenhum município conhecido** (nem por grafia exata, nem por
+        aproximação fonética) **retornam string vazia** — trate `""` como
+        "município desconhecido".
 
     Examples
     --------
@@ -287,8 +289,16 @@ def padronizar_municipios(valor: str) -> str:
     'CAMPO GRANDE'
     >>> enderecobr.padronizar_municipios("SAO VALERIO DA NATIVIDADE")
     'SAO VALERIO'
-    >>> enderecobr.padronizar_municipios("")
+    >>> enderecobr.padronizar_municipios("LAGOA DANTA")
+    "LAGOA D'ANTA"
+    >>> enderecobr.padronizar_municipios("")  # entrada vazia
     ''
+    >>> enderecobr.padronizar_municipios("BANANA")  # irreconhecível
+    ''
+    >>> enderecobr.padronizar_municipios("!!!!")  # sem conteúdo útil
+    ''
+    >>> enderecobr.padronizar_municipios("PARATI!!!!")  # ruído descartado antes da busca
+    'PARATY'
 
     Notes
     -----

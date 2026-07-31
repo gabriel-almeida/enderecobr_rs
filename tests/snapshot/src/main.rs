@@ -137,12 +137,12 @@ where
             "Os arquivos com os dados brutos e de snapshot têm tamanhos diferentes."
         );
 
-        let Some(primeiro) = valores_brutos.first() else {
-            return Ok("Valores do snapshot vazios.".to_string());
-        };
-
-        // Pequeno aquecimento para calcular melhor os tempos.
-        (self.processador)(primeiro);
+        // Entrada e snapshot ambos vazios (condição já garantida pelo assert_eq
+        // de tamanho acima): nada a comparar. Retornar aqui evita ainda a
+        // divisão por zero em `duracao / valores_snapshot.len()` abaixo.
+        if valores_snapshot.is_empty() {
+            return Ok("Entrada e snapshot vazios; nada a comparar.".to_string());
+        }
 
         let inicio = Instant::now();
         let res: Vec<_> = valores_brutos
