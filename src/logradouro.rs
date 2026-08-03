@@ -17,6 +17,7 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r" \.", ".") // garantir que não haja um espaço antes dos pontos
         .adicionar(r" ," , ",") // garantir que não haja um espaço antes dos pontos
         .adicionar(r"\.$", "") // remoção de ponto final
+        .adicionar(r"\\", "/") // Contra-barra \ => Barra /
 
         // Sinalização
         .adicionar("\"", "'") // existem ocorrencias em que aspas duplas sao usadas para se referir a um logradouro/quadra com nome relativamente ambiguo - e.g. RUA \"A\", 26. isso pode causar um problema quando lido com o data.table: https://github.com/Rdatatable/data.table/issues/4779. por enquanto, substituindo por aspas simples. Depois a gente pode ver o que fazer com as aspas simples rs.
