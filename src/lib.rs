@@ -387,7 +387,7 @@ pub use cep::padronizar_cep;
 pub use cep::padronizar_cep_leniente;
 pub use cep::padronizar_cep_numerico;
 pub use complemento::padronizar_complementos;
-pub use dado_faltante::identificar_dado_faltante;
+pub use dado_faltante::is_dado_faltante;
 pub use estado::padronizar_estados_para_codigo;
 pub use estado::padronizar_estados_para_nome;
 pub use estado::padronizar_estados_para_sigla;
@@ -417,10 +417,10 @@ pub fn obter_padronizador_por_tipo(tipo: &str) -> Result<fn(&str) -> String, &st
         "estado_nome" => Ok(|x| padronizar_estados_para_nome(x).to_string()),
         "estado_codigo" => Ok(|x| padronizar_estados_para_codigo(x).to_string()),
         "municipio" | "mun" => Ok(padronizar_municipios),
-        "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or("".to_string())),
+        "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or_else(|_| "".to_string())),
         "cep_leniente" => Ok(padronizar_cep_leniente),
         "metaphone" => Ok(metaphone::metaphone),
-        "dado_faltante" => Ok(|x| identificar_dado_faltante(x).to_string()),
+        "dado_faltante" => Ok(|x| is_dado_faltante(x).to_string()),
 
         #[cfg(feature = "experimental")]
         "completo" => Ok(padronizar_endereco_bruto),

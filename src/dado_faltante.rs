@@ -1,7 +1,10 @@
 use std::sync::LazyLock;
 
 use crate::{normalizar, IdentificadorPadroes};
-
+#[expect(
+    dead_code,
+    reason = "Função utilitária para futuras regras de dado faltante"
+)]
 fn fuzzy(word: &str, tam_min: usize) -> String {
     let chars: Vec<char> = word.chars().collect();
 
@@ -34,18 +37,13 @@ fn fuzzy(word: &str, tam_min: usize) -> String {
 pub fn criar_identificador_dado_faltante() -> IdentificadorPadroes {
     let mut identificador = IdentificadorPadroes::default();
     identificador.adicionar(&[
-        r"^SI|NS|NI|NA$".to_string(),
-        // format!(r"^N(A|AO|O)? ?({})$", fuzzy("SEI", 2).as_str()),
-        // format!(r"^N(A|AO|O)? ?({})$", fuzzy("SABIDO", 2).as_str()),
-        // format!(r"^N(A|AO|O)? ?({})$", fuzzy("SABE", 3).as_str()),
-        // format!(r"^N(A|AO|O)? ?({})$", fuzzy("INFORMADO", 2).as_str()),
-        // format!(r"^N(A|AO|O)? ?({})$", fuzzy("LEMBRA", 3).as_str()),
-        // format!(r"^N(A|AO|O)? ?({})$", fuzzy("FORNECIDO", 3).as_str()),
-        // format!(r"^S(E|EM)? ?({})$", fuzzy("INFORMACAO", 3).as_str()),
-        // format!(r"^({})$", fuzzy("DESCONHECIDO", 3)),
+        r"^(SI|NS|NI|NA)$".to_string(),
+        r"^DESCON[^ ]*$".to_string(),
+        r"^S(EM)? *INFO[^ ]*$".to_string(),
+        r"^N(AO)? *(CONSTA|TEM|SEI)?$".to_string(),
+        r"^N(AO)? *(POSSUI|LOCALIZ|ESPECIF|INFO|FORNEC|EXIST|PENS|LEMB|SAB)[^ ]*$".to_string(),
+        r"^N(AO)? *SABE *INFO[^ ]*$".to_string(),
     ]);
-
-    identificador.padroes.iter().for_each(|x| println!("{}", x));
 
     identificador
 }
@@ -53,12 +51,28 @@ pub fn criar_identificador_dado_faltante() -> IdentificadorPadroes {
 static IDENTIFICADOR: LazyLock<IdentificadorPadroes> =
     LazyLock::new(criar_identificador_dado_faltante);
 
-pub fn identificar_dado_faltante(valor: &str) -> bool {
+pub fn is_dado_faltante(valor: &str) -> bool {
     let identificador = &*IDENTIFICADOR;
     identificador.identificar(&normalizar(valor))
 }
 
-pub fn identificar_dado_faltante_normalizado(valor: &str) -> bool {
+pub fn zerar_dado_faltante(valor: String) -> String {
     let identificador = &*IDENTIFICADOR;
-    identificador.identificar(valor)
+    if identificador.identificar(&valor) {
+        "".to_string()
+    } else {
+        valor
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn checagem_simples() {
+        assert_eq!(is_dado_faltante("NAO POSSUI"), true);
+        assert_eq!(is_dado_faltante("RUA A"), false);
+        assert_eq!(is_dado_faltante("VL SILVANIA"), false);
+    }
 }
