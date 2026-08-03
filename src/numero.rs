@@ -5,10 +5,14 @@ use crate::Padronizador;
 pub fn criar_padronizador_numeros() -> Padronizador {
     let mut padronizador = Padronizador::default();
     padronizador
+        // Apaga pares de caracteres comuns
+        .adicionar(r"\((.*?)\)", " $1")
+        .adicionar("\"(.*?)\"", " $1")
+        .adicionar(r"'(.*?)'", " $1")
         // Regexp adicional: remove espaços em branco repetidos
         .adicionar(r"\s{2,}", " ")
-        // Remove tudo que começa ou termina com qualquer coisa que não seja número ou texto
-        .adicionar(r"(^[^A-Z0-9]+|[^A-Z0-9]+$)", "")
+        // Apaga qualquer coisa que não seja letra ou número no inicio ou fim
+        .adicionar(r"^[^A-Z0-9]+|[^A-Z0-9]+$", "")
         // Remove prefixo de número
         .adicionar(
             r"^N(O|OS|\.O|U|UM|NUMERO| )?( |\.|:| |O|-|\*)*([0-9]+)",
@@ -23,7 +27,7 @@ pub fn criar_padronizador_numeros() -> Padronizador {
         .adicionar(r"(\d+)\.(\d{3})", "$1$2")
         // SN ou S.N. ou S N ou .... -> S/N
         .adicionar(
-            r"^(S|SE|SEM)?(\/|;|-|\\|\.| )*(N|N\.|M)?(A|O|E|U|C|R|S|UM|UME|UMER|UMERO)?(0| |º|\.)*$",
+            r"^(S|SE|SEM)?(\/|;|-|\\|\.| )*(N|N\.)(A|O|E|U|C|R|S|UM|UME|UMER|UMERO)?(0| |º|\.)*$",
             "S/N",
         )
         .adicionar(r"^N(AO|O)? TEM$", "S/N")
