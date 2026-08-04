@@ -313,5 +313,11 @@ mod tests {
         assert_eq!(padronizar_estados_para_sigla("ma"), "MA");
         assert_eq!(padronizar_estados_para_sigla(""), ""); // NA
         assert_eq!(padronizar_estados_para_sigla("MARANHÃO"), "MA");
+
+        assert_eq!(padronizar_estados_para_codigo("MARANHAO"), "21");
+
+        assert_eq!(padronizar_estados_para_nome("MARANHÃO"), "MARANHAO");
+        assert_eq!(padronizar_estados_para_codigo("Banana"), "");
+        assert_eq!(padronizar_estados_para_sigla("Banana"), "");
     }
 }

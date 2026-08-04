@@ -39,6 +39,9 @@ mod tests {
 
     #[test]
     fn checagem_simples() {
+        assert_eq!(zerar_dado_faltante("NAO POSSUI".to_string()), "");
+        assert_eq!(zerar_dado_faltante("RUA A".to_string()), "RUA A");
+
         assert_eq!(is_dado_faltante("NAO POSSUI"), true);
         assert_eq!(is_dado_faltante("RUA A"), false);
         assert_eq!(is_dado_faltante("VL SILVANIA"), false);

@@ -118,5 +118,12 @@ mod tests {
 
         // Teste novo
         assert_eq!(padronizar_cep("   ").unwrap(), "");
+
+        assert_eq!(padronizar_cep_numerico(22290140).unwrap(), "22290-140");
+    }
+    #[test]
+    fn padroniza_cep_forma_leniente() {
+        assert_eq!(padronizar_cep_leniente(""), "");
+        assert_eq!(padronizar_cep_leniente("a123b45  6"), "00123-456");
     }
 }

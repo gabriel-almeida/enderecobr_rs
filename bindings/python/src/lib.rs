@@ -206,11 +206,6 @@ pub mod enderecobr {
     }
 
     #[pyfunction]
-    fn identificar_dado_faltante(valor: &str) -> bool {
-        enderecobr_rs::identificar_dado_faltante(valor)
-    }
-
-    #[pyfunction]
     fn normalizar(valor: &str) -> String {
         enderecobr_rs::normalizar(valor).to_string()
     }
