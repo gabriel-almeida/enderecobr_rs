@@ -1,38 +1,6 @@
 use std::sync::LazyLock;
 
 use crate::{normalizar, IdentificadorPadroes};
-#[expect(
-    dead_code,
-    reason = "Função utilitária para futuras regras de dado faltante"
-)]
-fn fuzzy(word: &str, tam_min: usize) -> String {
-    let chars: Vec<char> = word.chars().collect();
-
-    let mut variants = Vec::new();
-
-    // Prefixos normais
-    for i in tam_min..=chars.len() {
-        variants.push(chars[..i].iter().collect::<String>());
-    }
-
-    // Prefixos só com consoantes (mantendo a primeira letra)
-    let mut consonant_prefix = String::new();
-
-    for (i, c) in chars.iter().enumerate() {
-        if i == 0 || !"AEIOU".contains(*c) {
-            consonant_prefix.push(*c);
-
-            if consonant_prefix.chars().count() >= tam_min {
-                variants.push(consonant_prefix.clone());
-            }
-        }
-    }
-
-    variants.sort();
-    variants.dedup();
-
-    variants.join("|")
-}
 
 pub fn criar_identificador_dado_faltante() -> IdentificadorPadroes {
     let mut identificador = IdentificadorPadroes::default();
