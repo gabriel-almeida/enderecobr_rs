@@ -1,4 +1,6 @@
+use std::collections::HashSet;
 use std::fmt::Display;
+use std::hash::Hash;
 use std::time::Instant;
 
 use clap::Parser;
@@ -108,7 +110,7 @@ where
     I: SerializadorSnapshot<T>,
     O: SerializadorSnapshot<U>,
     T: Display,
-    U: PartialEq + Display,
+    U: PartialEq + Display + Eq + Hash,
 {
     fn salvar_snapshot(&self, base_path: &str) -> Result<String, String> {
         let valores_brutos = self
@@ -173,6 +175,27 @@ where
             tempo_por_qtd,
             (1f64 / tempo_por_qtd as f64) * 1_000_000_000f64
         );
+
+        if let Ok(referencia) =
+            self.serializador_entrada
+                .carregar(base_path, self.nome, "referencia")
+        {
+            let valores_referencia: HashSet<_> =
+                referencia.iter().map(|x| (self.processador)(x)).collect();
+
+            let n_nao_pareados = valores_brutos
+                .iter()
+                .filter(|x| !valores_referencia.contains(&(self.processador)(x)))
+                .count();
+
+            println!(
+                "> Pareamento de {} com base de referência: {}/{} registros não pareados ({:.2}%)",
+                self.nome,
+                n_nao_pareados,
+                valores_brutos.len(),
+                n_nao_pareados as f64 * 100f64 / valores_brutos.len() as f64
+            );
+        }
 
         if !res.is_empty() {
             return Ok(Table::new(res).with(Style::markdown()).to_string());

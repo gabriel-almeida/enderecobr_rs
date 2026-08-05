@@ -93,3 +93,6 @@ snapshot-download: $(SNAPSHOT_FILES:%=$(DIR_SNAPSHOTS)/%)
 snapshot-criar-bruto:
 	duckdb < $(DIR_SQLS)/snapshot_test_bruto.sql
 
+# Cria um arquivo de referência baseado no CNEFE para testar o resultado
+snapshot-referencia: 
+	duckdb < $(DIR_SQLS)/cnefe_referencia.sql
