@@ -39,7 +39,7 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r"^X{3,}$", "") // XXX+
 
         // Logradouro começa com OUTROS: Caso de erro comum
-        .adicionar(r"^OUTROS\b", "")
+        .adicionar(r"^OUTROS\s", "")
 
         // tipos de logradouro
         .adicionar(r"^RU?\b(\.|,)?", "RUA") // R. AZUL -> RUA AZUL
