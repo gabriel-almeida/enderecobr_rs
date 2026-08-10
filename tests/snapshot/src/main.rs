@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::hash::Hash;
 use std::time::Instant;
@@ -211,21 +211,33 @@ where
             return Ok(());
         }
 
-        let referencia = referencia_res?;
+        // Valores de Referência tratados com a versão atual e a anterior do pacote.
+        let mut idx_ref_novas = HashMap::<String, HashSet<Comparacao>>::new();
+        let mut idx_ref_antigas = HashMap::<String, HashSet<Comparacao>>::new();
+        for r in referencia_res.unwrap() {
+            let comparacao = Comparacao {
+                versao_antiga: r.to_string(),
+                versao_nova: (self.processador)(&r).to_string(),
+            };
+            idx_ref_novas
+                .entry(comparacao.versao_nova.clone())
+                .or_default()
+                .insert(comparacao.clone());
 
-        // Valores de Referência tratados com a versão anterior do pacote.
-        let referencia_antiga: HashSet<_> = referencia.iter().collect();
-
-        // Valores de referência tratados com a versão atual do pacote.
-        let referencia_atual: HashSet<_> =
-            referencia.iter().map(|x| (self.processador)(x)).collect();
+            idx_ref_antigas
+                .entry(comparacao.versao_antiga.clone())
+                .or_default()
+                .insert(comparacao.clone());
+        }
 
         ////////
 
         // Valores processados com a versão antiga que batem com os valores de referência processados também com a versão antiga
         let pareados_antiga: HashSet<_> = snapshot
             .iter()
-            .filter(|antiga| referencia_antiga.contains(antiga))
+            .filter_map(|antiga| idx_ref_antigas.get(&antiga.to_string()))
+            .flatten()
+            .cloned()
             .collect();
 
         // Valores processados com a versão atual que batem com os valores de referência tratados
@@ -234,12 +246,10 @@ where
             .iter()
             .filter_map(|bruto| {
                 let processado = (self.processador)(bruto);
-                if referencia_atual.contains(&processado) {
-                    Some(processado)
-                } else {
-                    None
-                }
+                idx_ref_novas.get(&processado.to_string())
             })
+            .flatten()
+            .cloned()
             .collect();
 
         ////////////
@@ -247,11 +257,7 @@ where
         // quem está pareado na versão antiga que não está pareado na versão nova
         let regressoes: Vec<_> = pareados_antiga
             .iter()
-            .filter(|x| !pareados_novos.contains(&(self.processador)(x)))
-            .map(|x| Regressao {
-                versao_antiga: x.to_string(),
-                versao_nova: (self.processador)(x).to_string(),
-            })
+            .filter(|x| !pareados_novos.contains(*x))
             .collect();
 
         // quem está pareado na versão nova mas não está na versão antiga
@@ -305,8 +311,8 @@ struct Diff {
     atual: String,
 }
 
-#[derive(Tabled)]
-struct Regressao {
+#[derive(Tabled, Hash, PartialEq, Eq, Clone)]
+struct Comparacao {
     versao_antiga: String,
     versao_nova: String,
 }
