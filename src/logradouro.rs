@@ -258,7 +258,7 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r"\b(RO|AC|AM|RR|PA|AP|TO|MA|PI|CE|RN|PB|PE|AL|SE|BA|MG|ES|RJ|SP|PR|SC|RS|MS|MT|GO|DF) ?(\d{3})", "$1-$2")
 
         // 0 à esquerda
-        .adicionar(r" (0)(\d+)", " $2")
+        .adicionar(r"(^| )0+(\d+)\b", "$1$2")
 
         // correções de problemas ocasionados pelos filtros acima
         .adicionar(r"\bTENENTE SHI\b", "TEN SHI")
