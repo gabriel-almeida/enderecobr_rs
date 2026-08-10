@@ -33,6 +33,8 @@ pub fn criar_padronizador_numeros() -> Padronizador {
         .adicionar(r"^N(AO|O)? TEM$", "S/N")
         .adicionar(r"^(SEM NUMERO|NULL|NA|IGNORADO)$", "S/N")
         .adicionar(r"^(X|0|-)+$", "S/N")
+        // Substitui range de números pelo o primeiro número
+        .adicionar(r"^(\d+)([,/-]\d+)+$", "$1")
         // Regexp adicional: string vazia => S/N
         .adicionar("^$", "S/N");
 
