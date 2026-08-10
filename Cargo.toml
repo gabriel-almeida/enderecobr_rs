@@ -1,6 +1,6 @@
 [package]
 name = "enderecobr_rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 rust-version = '1.81'
@@ -52,15 +52,15 @@ cli = ["clap"]
 polars_cli = ["clap", "polars"]
 
 [dependencies]
-clap = { version = "4.6.1", features = ["derive"], optional = true }
+clap = { version = "4.6.6", features = ["derive"], optional = true }
 crfsuite = { version = "0.3.2", optional = true}
 diacritics = "0.2.2"
 itertools = "0.15.0"
 # Feature de timezone é temporário até corrigirem a issue abaixo
 # https://github.com/pola-rs/polars/issues/25148
 polars = { version = "0.52.0", features = ["lazy", "parquet", "timezones"], optional = true }
-regex = "1.12.3"
-rustc-hash = "2.1.2"
+regex = "1.13.1"
+rustc-hash = "2.1.3"
 unicode-normalization = "0.1.25"
 
 # Perfil de release mais otimizado, porém muito mais lento de compilar.
@@ -93,7 +93,7 @@ unwrap_used = "warn"
 expect_used = "warn"
 
 [dev-dependencies]
-criterion = "0.8.1"
+criterion = "0.8.2"
 
 [[bench]]
 name = "numero_extenso_bench"
