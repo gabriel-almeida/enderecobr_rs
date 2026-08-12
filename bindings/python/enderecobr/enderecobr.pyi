@@ -317,9 +317,9 @@ def padronizar_municipios(valor: str) -> str:
     """
     ...
 
-def identificar_dado_faltante(valor: str) -> bool:
+def is_dado_faltante(valor: str) -> bool:
     """
-    Identifica se uma string representa um dado faltante (sem informação de número).
+    Identifica se uma string representa um dado faltante.
 
     Parameters
     ----------
@@ -335,11 +335,15 @@ def identificar_dado_faltante(valor: str) -> bool:
     Examples
     --------
     >>> import enderecobr
-    >>> enderecobr.identificar_dado_faltante('SI')
+    >>> enderecobr.is_dado_faltante('SI')
     True
-    >>> enderecobr.identificar_dado_faltante('NA')
+    >>> enderecobr.is_dado_faltante('SEM INFORMAÇÃO')
     True
-    >>> enderecobr.identificar_dado_faltante('RUA')
+    >>> enderecobr.is_dado_faltante('NA')
+    True
+    >>> enderecobr.is_dado_faltante('N CONSTA')
+    True
+    >>> enderecobr.is_dado_faltante('RUA B')
     False
 
     """
@@ -725,7 +729,9 @@ class Padronizador:
         """
         ...
 
-    def adicionar_com_ignorar(self, regex: str, substituicao: str, regex_ignorar: str) -> None:
+    def adicionar_com_ignorar(
+        self, regex: str, substituicao: str, regex_ignorar: str
+    ) -> None:
         """
         Adiciona uma regra condicional de substituição (com regex de exclusão).
 
@@ -755,7 +761,12 @@ class Padronizador:
         """
         ...
 
-    def adicionar_vetores(self, regexes: Iterable[str], substituicoes: Iterable[str], regex_ignorar: Iterable[None | str]) -> None:
+    def adicionar_vetores(
+        self,
+        regexes: Iterable[str],
+        substituicoes: Iterable[str],
+        regex_ignorar: Iterable[None | str],
+    ) -> None:
         """
         Adiciona regras a partir de três vetores paralelos.
 

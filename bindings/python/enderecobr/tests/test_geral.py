@@ -64,6 +64,8 @@ def testa_numero_por_extenso():
 
 def testa_romano_para_inteiro():
     assert enderecobr.romano_para_inteiro("VI") == 6
+
+
 def testa_padronizar_estados_para_codigo():
     assert enderecobr.padronizar_estados_para_codigo("MA") == "21"
 
@@ -83,8 +85,8 @@ def testa_padronizar_numeros_para_string():
 
 
 def testa_identificar_dado_faltante():
-    assert enderecobr.identificar_dado_faltante("SI") is True
-    assert enderecobr.identificar_dado_faltante("RUA") is False
+    assert enderecobr.is_dado_faltante("SI") is True
+    assert enderecobr.is_dado_faltante("RUA") is False
 
 
 def testa_normalizar():

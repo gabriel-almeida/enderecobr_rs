@@ -209,6 +209,10 @@ pub mod enderecobr {
     fn normalizar(valor: &str) -> String {
         enderecobr_rs::normalizar(valor).to_string()
     }
+    #[pyfunction]
+    fn is_dado_faltante(valor: &str) -> bool {
+        enderecobr_rs::is_dado_faltante(valor)
+    }
 
     #[pyfunction]
     fn metaphone(valor: &str) -> String {
