@@ -19,11 +19,23 @@ pub fn criar_identificador_dado_faltante() -> IdentificadorPadroes {
 static IDENTIFICADOR: LazyLock<IdentificadorPadroes> =
     LazyLock::new(criar_identificador_dado_faltante);
 
+/// Identifica se uma string representa um dado faltante.
+///
+/// # Exemplo
+/// ```
+/// use enderecobr_rs::is_dado_faltante;
+/// assert_eq!(is_dado_faltante("SI"), true);
+/// assert_eq!(is_dado_faltante("SEM INFORMAÇÃO"), true);
+/// assert_eq!(is_dado_faltante("NA"), true);
+/// assert_eq!(is_dado_faltante("N CONSTA"), true);
+/// assert_eq!(is_dado_faltante("RUA B"), false);
+/// ```
 pub fn is_dado_faltante(valor: &str) -> bool {
     let identificador = &*IDENTIFICADOR;
     identificador.identificar(&normalizar(valor))
 }
 
+/// Retorna uma string vazia caso o input seja um dado faltante. Vide [`is_dado_faltante`].
 pub fn zerar_dado_faltante(valor: String) -> String {
     let identificador = &*IDENTIFICADOR;
     if identificador.identificar(&valor) {
