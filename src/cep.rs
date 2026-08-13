@@ -46,7 +46,7 @@ pub fn padronizar_cep(valor: &str) -> Result<String, String> {
     }
 
     if valor.trim().is_empty() {
-        return Ok("".to_string());
+        return Ok(String::new());
     }
 
     let valor_numerico: String = valor.chars().filter(|c| c.is_numeric()).collect();
@@ -56,8 +56,10 @@ pub fn padronizar_cep(valor: &str) -> Result<String, String> {
     }
 
     // Padding na esquerda
-    let cep = format!("{:0>8}", valor_numerico);
-    Ok(format!("{}-{}", &cep[0..5], &cep[5..8]))
+    let parte1 = cep.get(0..5).ok_or("CEP inválido")?;
+    let parte2 = cep.get(5..8).ok_or("CEP inválido")?;
+
+    Ok(format!("{}-{}", parte1, parte2))
 }
 
 /// Padroniza CEPs em formato textual para uma string formatada, tentando corrigir possíveis erros.
@@ -74,7 +76,7 @@ pub fn padronizar_cep(valor: &str) -> Result<String, String> {
 ///
 pub fn padronizar_cep_leniente(valor: &str) -> String {
     if valor.is_empty() {
-        return "".to_string();
+        return String::new();
     }
 
     let valor_numerico: String = valor.chars().filter(|c| c.is_numeric()).take(8).collect();

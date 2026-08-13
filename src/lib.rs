@@ -127,21 +127,19 @@ impl Padronizador {
     /// Este método é projetado para interoperabilidade com linguagens dinâmicas (ex: Python),
     /// onde estruturas heterogêneas são comuns.
     pub fn adicionar_pares(&mut self, pares: &[&[Option<&str>]]) {
-        for p in pares
-            .iter()
-            .map(|p| p.iter().filter_map(|i| i.as_ref()).collect::<Vec<_>>())
-        {
-            if p.is_empty() {
-                continue;
-            }
-            if p.len() == 1 {
-                self.adicionar(p[0], "");
-            }
-            if p.len() == 2 {
-                self.adicionar(p[0], p[1]);
-            }
-            if p.len() >= 3 {
-                self.adicionar_com_ignorar(p[0], p[1], p[2]);
+        for p in pares {
+            let mut valores = p.iter().filter_map(|i| *i);
+            match (valores.next(), valores.next(), valores.next()) {
+                (None, _, _) => (),
+                (Some(a), None, _) => {
+                    self.adicionar(a, "");
+                }
+                (Some(a), Some(b), None) => {
+                    self.adicionar(a, b);
+                }
+                (Some(a), Some(b), Some(c)) => {
+                    self.adicionar_com_ignorar(a, b, c);
+                }
             }
         }
         self.preparar();
@@ -231,7 +229,8 @@ impl Padronizador {
             .map(|par| par.regexp.as_str())
             .collect();
 
-        self.grupo_regex = RegexSet::new(regexes).unwrap();
+        // Não deveria acontecer: O erro já deveria ocorrer na construção do objeto.
+        self.grupo_regex = RegexSet::new(regexes).expect("Regex inválida: Erro interno");
     }
 
     /// Aplica todas as regras de substituição ao texto de entrada até que nenhuma nova
@@ -243,7 +242,7 @@ impl Padronizador {
     ///
     /// Retorna uma nova `String` com o texto padronizado.
     pub fn padronizar(&self, valor: &str) -> String {
-        return self.padronizar_cow(valor).to_string();
+        self.padronizar_cow(valor).to_string()
     }
 
     // Função otimizada para não re-alocar strings quando desnecessário.
@@ -373,7 +372,8 @@ pub struct IdentificadorPadroes {
 impl IdentificadorPadroes {
     pub fn adicionar(&mut self, regexs: &[String]) -> &mut Self {
         self.padroes.extend(regexs.iter().map(|x| x.to_owned()));
-        self.regex_set = RegexSet::new(self.padroes.iter()).unwrap();
+        self.regex_set =
+            RegexSet::new(self.padroes.iter()).expect("RegexSet inválida: erro de compilação.");
         self
     }
 
@@ -417,7 +417,7 @@ pub fn obter_padronizador_por_tipo(tipo: &str) -> Result<fn(&str) -> String, &st
         "estado_nome" => Ok(|x| padronizar_estados_para_nome(x).to_string()),
         "estado_codigo" => Ok(|x| padronizar_estados_para_codigo(x).to_string()),
         "municipio" | "mun" => Ok(padronizar_municipios),
-        "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or_else(|_| "".to_string())),
+        "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or_else(|_| String::new())),
         "cep_leniente" => Ok(padronizar_cep_leniente),
         "metaphone" => Ok(metaphone::metaphone),
         "dado_faltante" => Ok(|x| is_dado_faltante(x).to_string()),

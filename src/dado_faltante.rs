@@ -39,7 +39,7 @@ pub fn is_dado_faltante(valor: &str) -> bool {
 pub fn zerar_dado_faltante(valor: String) -> String {
     let identificador = &*IDENTIFICADOR;
     if identificador.identificar(&valor) {
-        "".to_string()
+        String::new()
     } else {
         valor
     }
