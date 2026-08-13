@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{borrow::Cow, sync::LazyLock};
 
 use crate::{normalizar, IdentificadorPadroes};
 
@@ -36,12 +36,12 @@ pub fn is_dado_faltante(valor: &str) -> bool {
 }
 
 /// Retorna uma string vazia caso o input seja um dado faltante. Vide [`is_dado_faltante`].
-pub fn zerar_dado_faltante(valor: String) -> String {
+pub fn zerar_dado_faltante<'a>(valor: &'a str) -> Cow<'a, str> {
     let identificador = &*IDENTIFICADOR;
-    if identificador.identificar(&valor) {
-        String::new()
+    if identificador.identificar(valor) {
+        Cow::Borrowed("")
     } else {
-        valor
+        Cow::Borrowed(valor)
     }
 }
 
@@ -51,8 +51,8 @@ mod tests {
 
     #[test]
     fn checagem_simples() {
-        assert_eq!(zerar_dado_faltante("NAO POSSUI".to_string()), "");
-        assert_eq!(zerar_dado_faltante("RUA A".to_string()), "RUA A");
+        assert_eq!(zerar_dado_faltante("NAO POSSUI"), "");
+        assert_eq!(zerar_dado_faltante("RUA A"), "RUA A");
 
         assert_eq!(is_dado_faltante("NAO POSSUI"), true);
         assert_eq!(is_dado_faltante("RUA A"), false);

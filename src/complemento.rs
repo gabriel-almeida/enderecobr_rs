@@ -283,7 +283,9 @@ static PADRONIZADOR: LazyLock<Padronizador> = LazyLock::new(criar_padronizador_c
 pub fn padronizar_complementos(valor: &str) -> String {
     // Forma de obter a variável lazy
     let padronizador = &*PADRONIZADOR;
-    zerar_dado_faltante(padronizador.padronizar(valor))
+    padronizador
+        .padronizar(&zerar_dado_faltante(valor))
+        .to_string()
 }
 
 #[cfg(test)]
