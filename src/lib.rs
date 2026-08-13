@@ -93,9 +93,10 @@ pub struct ParSubstituicao {
 impl ParSubstituicao {
     fn new(regex: &str, substituicao: &str, regex_ignorar: Option<&str>) -> Self {
         ParSubstituicao {
-            regexp: Regex::new(regex).unwrap(),
+            regexp: Regex::new(regex).expect("Expressão regular inválida"),
             substituicao: substituicao.to_uppercase().to_string(),
-            regexp_ignorar: regex_ignorar.map(|r| Regex::new(r).unwrap()),
+            regexp_ignorar: regex_ignorar
+                .map(|r| Regex::new(r).expect("Expressão regular para `regexp_ignorar` inválida")),
         }
     }
 }
@@ -263,7 +264,9 @@ impl Padronizador {
             };
 
             ultimo_idx = idx_substituicao;
-            let par = &self.substituicoes[idx];
+            let Some(par) = self.substituicoes.get(idx) else {
+                break; // Não deveria acontecer.
+            };
 
             // FIXME: essa solução dá problema quando eu tenho mais de um match da regexp
             // original. Precisaria de uma heurística melhor.

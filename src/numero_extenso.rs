@@ -384,7 +384,11 @@ pub fn padronizar_numero_romano_por_extenso(valor: &str) -> Cow<'_, str> {
         let trecho_atual = resultado_opt.get_or_insert_with(|| String::with_capacity(valor.len()));
 
         // Copia trecho antes do match
-        trecho_atual.push_str(&valor[ultimo..inicio]);
+        let valor_antes_match = valor
+            .get(ultimo..inicio)
+            .expect("String deveria ter caracteres entre [ultimo, inicio]");
+
+        trecho_atual.push_str(valor_antes_match);
 
         let n = romano_para_inteiro(romano);
         trecho_atual.push_str(numero_por_extenso(n).as_ref());
@@ -395,7 +399,11 @@ pub fn padronizar_numero_romano_por_extenso(valor: &str) -> Cow<'_, str> {
     match resultado_opt {
         None => Cow::Borrowed(valor),
         Some(mut s) => {
-            s.push_str(&valor[ultimo..]);
+            s.push_str(
+                valor
+                    .get(ultimo..)
+                    .expect("String '{valor}' deveria ter caracteres após {ultimo}"),
+            );
             Cow::Owned(s)
         }
     }
