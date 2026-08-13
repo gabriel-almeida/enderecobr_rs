@@ -13,11 +13,10 @@
 /// ```
 ///
 pub fn padronizar_cep_numerico(valor: i32) -> Result<String, String> {
-    if valor >= 99999999 {
+    if valor >= 99_999_999 {
         return Err("CEP com muitos dígitos".to_string());
     }
-    let cep = format!("{:08}", valor);
-    Ok(format!("{}-{}", &cep[0..5], &cep[5..8]))
+    Ok(format!("{:05}-{:03}", valor / 1000, valor % 1000))
 }
 
 /// Padroniza CEPs em formato textual para uma string formatada, retornando possíveis erros.
@@ -49,17 +48,25 @@ pub fn padronizar_cep(valor: &str) -> Result<String, String> {
         return Ok(String::new());
     }
 
-    let valor_numerico: String = valor.chars().filter(|c| c.is_numeric()).collect();
+    let valor_numerico: String = valor
+        .bytes()
+        .filter_map(|c| {
+            if c.is_ascii_digit() {
+                Some(c as char)
+            } else {
+                None
+            }
+        })
+        .collect();
 
     if valor_numerico.len() > 8 {
         return Err("CEP com muitos dígitos".to_string());
     }
 
     // Padding na esquerda
-    let parte1 = cep.get(0..5).ok_or("CEP inválido")?;
-    let parte2 = cep.get(5..8).ok_or("CEP inválido")?;
-
-    Ok(format!("{}-{}", parte1, parte2))
+    let mut cep = format!("{:0>8}", valor_numerico);
+    cep.insert(5, '-'); // Garanto que não ocorre panic
+    Ok(cep)
 }
 
 /// Padroniza CEPs em formato textual para uma string formatada, tentando corrigir possíveis erros.
@@ -79,11 +86,22 @@ pub fn padronizar_cep_leniente(valor: &str) -> String {
         return String::new();
     }
 
-    let valor_numerico: String = valor.chars().filter(|c| c.is_numeric()).take(8).collect();
+    let digitos: String = valor
+        .bytes()
+        .filter_map(|c| {
+            if c.is_ascii_digit() {
+                Some(c as char)
+            } else {
+                None
+            }
+        })
+        .take(8)
+        .collect();
 
     // Padding na esquerda
-    let cep = format!("{:0>8}", valor_numerico);
-    format!("{}-{}", &cep[0..5], &cep[5..8])
+    let mut cep = format!("{:0>8}", digitos);
+    cep.insert(5, '-');
+    cep
 }
 
 #[cfg(test)]
