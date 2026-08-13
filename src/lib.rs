@@ -510,4 +510,194 @@ mod tests {
         let mut pad = Padronizador::default();
         pad.adicionar_vetores(&["a"], &["b"], &[Some("x"), Some("y")]);
     }
+
+    #[test]
+    fn test_adicionar_pares_somente_regex() {
+        // Arm `(Some(a), None, _)`: apenas regex, substituição vazia.
+        let mut pad = Padronizador::default();
+        pad.adicionar_pares(&[&[Some("X")], &[Some("Y"), None]]);
+
+        assert_eq!(pad.obter_pares(), vec![("X", "", None), ("Y", "", None)]);
+    }
+
+    #[test]
+    fn test_endereco_campos_padronizados() {
+        let endereco = Endereco {
+            logradouro: Some("r. gen.. glicério".to_string()),
+            numero: Some("001".to_string()),
+            complemento: Some("apto. 405".to_string()),
+            localidade: Some("jd botânico".to_string()),
+        };
+
+        assert_eq!(
+            endereco.logradouro_padronizado(),
+            Some("RUA GENERAL GLICERIO".to_string())
+        );
+        assert_eq!(endereco.numero_padronizado(), Some("1".to_string()));
+        assert_eq!(
+            endereco.complemento_padronizado(),
+            Some("APARTAMENTO 405".to_string())
+        );
+        assert_eq!(
+            endereco.localidade_padronizada(),
+            Some("JARDIM BOTANICO".to_string())
+        );
+    }
+
+    #[test]
+    fn test_endereco_padronizado_completo() {
+        let endereco = Endereco {
+            logradouro: Some("r. do aço".to_string()),
+            numero: Some("210".to_string()),
+            complemento: Some("qd 5".to_string()),
+            localidade: Some("prq ind".to_string()),
+        };
+
+        let esperado = Endereco {
+            logradouro: Some("RUA DO ACO".to_string()),
+            numero: Some("210".to_string()),
+            complemento: Some("QUADRA 5".to_string()),
+            localidade: Some("PARQUE INDUSTRIAL".to_string()),
+        };
+        assert_eq!(endereco.endereco_padronizado(), esperado);
+    }
+
+    #[test]
+    fn test_endereco_padronizado_campos_none() {
+        // Campos `None` permanecem `None` após padronização.
+        let endereco = Endereco::default();
+        assert_eq!(endereco.endereco_padronizado(), Endereco::default());
+
+        let endereco_parcial = Endereco {
+            logradouro: Some("r. x".to_string()),
+            ..Default::default()
+        };
+        let esperado = Endereco {
+            logradouro: Some("RUA X".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(endereco_parcial.endereco_padronizado(), esperado);
+    }
+
+    #[test]
+    fn test_endereco_formatar() {
+        // Campos None são omitidos; campos com texto são retrimados.
+        let endereco = Endereco {
+            logradouro: Some("  RUA A  ".to_string()),
+            numero: Some("123".to_string()),
+            complemento: None,
+            localidade: Some("CENTRO".to_string()),
+        };
+        assert_eq!(endereco.formatar(), "RUA A, 123, CENTRO");
+    }
+
+    #[test]
+    fn test_endereco_formatar_vazio() {
+        assert_eq!(Endereco::default().formatar(), "");
+    }
+
+    #[test]
+    fn test_obter_padronizador_por_tipo() {
+        // Logradouro
+        assert_eq!(
+            obter_padronizador_por_tipo("logradouro").unwrap()("r. gen"),
+            "RUA GENERAL"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("logr").unwrap()("r. gen"),
+            "RUA GENERAL"
+        );
+
+        // Tipo de logradouro
+        assert_eq!(
+            obter_padronizador_por_tipo("tipo_logradouro").unwrap()("R"),
+            "RUA"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("tipo_logr").unwrap()("AVE"),
+            "AVENIDA"
+        );
+
+        // Número
+        assert_eq!(obter_padronizador_por_tipo("numero").unwrap()("001"), "1");
+        assert_eq!(obter_padronizador_por_tipo("num").unwrap()("001"), "1");
+
+        // Bairro
+        assert_eq!(
+            obter_padronizador_por_tipo("bairro").unwrap()("prq ind"),
+            "PARQUE INDUSTRIAL"
+        );
+
+        // Complemento
+        assert_eq!(
+            obter_padronizador_por_tipo("complemento").unwrap()("apto 405"),
+            "APARTAMENTO 405"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("comp").unwrap()("apto 405"),
+            "APARTAMENTO 405"
+        );
+
+        // Estado (sigla, nome, código)
+        assert_eq!(obter_padronizador_por_tipo("estado").unwrap()("21"), "MA");
+        assert_eq!(
+            obter_padronizador_por_tipo("estado_nome").unwrap()("21"),
+            "MARANHAO"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("estado_codigo").unwrap()("MA"),
+            "21"
+        );
+
+        // Município
+        assert_eq!(
+            obter_padronizador_por_tipo("municipio").unwrap()("3304557"),
+            "RIO DE JANEIRO"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("mun").unwrap()("3304557"),
+            "RIO DE JANEIRO"
+        );
+
+        // CEP
+        assert_eq!(
+            obter_padronizador_por_tipo("cep").unwrap()("12345-6"),
+            "00123-456"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("cep_leniente").unwrap()("a123b45  6"),
+            "00123-456"
+        );
+
+        // CEP inválido retorna string vazia
+        assert_eq!(obter_padronizador_por_tipo("cep").unwrap()("999999999"), "");
+
+        // Metaphone
+        assert_eq!(
+            obter_padronizador_por_tipo("metaphone").unwrap()("João Silva"),
+            "JOAO SILVA"
+        );
+
+        // Dado faltante
+        assert_eq!(
+            obter_padronizador_por_tipo("dado_faltante").unwrap()("SI"),
+            "true"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("dado_faltante").unwrap()("RUA B"),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_obter_padronizador_por_tipo_invalido() {
+        assert_eq!(
+            obter_padronizador_por_tipo("banana"),
+            Err("Nenhum padronizador encontrado")
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo(""),
+            Err("Nenhum padronizador encontrado")
+        );
+    }
 }
