@@ -7,7 +7,8 @@ HF_DATASET = galmeida/enderecobr_rs
 
 SNAPSHOT_BASE_URL = https://huggingface.co/datasets/galmeida/enderecobr_rs/resolve/main/snapshot_test
 
-SNAPSHOT_FILES = complemento_bruto.csv complemento_snapshot.csv localidade_bruto.csv localidade_snapshot.csv logradouro_bruto.csv logradouro_snapshot.csv municipio_bruto.csv municipio_snapshot.csv numero_bruto.csv numero_snapshot.csv uf_bruto.csv uf_snapshot.csv
+# PS: O Complemento é o único que não tenho dados de referência no CNEFE. UF não é necessário.
+SNAPSHOT_FILES = complemento_bruto.csv complemento_snapshot.csv localidade_bruto.csv localidade_snapshot.csv localidade_referencia.csv logradouro_bruto.csv logradouro_snapshot.csv logradouro_referencia.csv municipio_bruto.csv municipio_snapshot.csv municipio_referencia.csv numero_bruto.csv numero_snapshot.csv numero_referencia.csv uf_bruto.csv uf_snapshot.csv
 
 .PHONY: hf-publicar-dataset hf-publicar-snapshot-test snapshot-criar-bruto snapshot-download
 
@@ -93,6 +94,7 @@ snapshot-download: $(SNAPSHOT_FILES:%=$(DIR_SNAPSHOTS)/%)
 snapshot-criar-bruto:
 	duckdb < $(DIR_SQLS)/snapshot_test_bruto.sql
 
-# Cria um arquivo de referência baseado no CNEFE para testar o resultado
-snapshot-referencia: 
+# Força a criação dos arquivos de referência baseado no CNEFE para avaliar o
+# resultado da padronização junto do snapshot test.
+snapshot-criar-referencia: 
 	duckdb < $(DIR_SQLS)/cnefe_referencia.sql
