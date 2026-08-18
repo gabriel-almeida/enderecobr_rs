@@ -53,6 +53,9 @@ pythonpath = ["enderecobr"]
 # Testa também docstrings dos arquivos `.pyi`.
 addopts = ["--doctest-glob=*.py", "--doctest-glob=*.pyi"]
 
+[tool.maturin.generate-ci.github]
+pytest = true
+
 # Dev dependencies são consideradas dependências locais apenas
 # https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies
 [dependency-groups]
