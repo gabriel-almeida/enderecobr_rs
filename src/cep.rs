@@ -13,11 +13,10 @@
 /// ```
 ///
 pub fn padronizar_cep_numerico(valor: i32) -> Result<String, String> {
-    if valor >= 99999999 {
+    if valor >= 99_999_999 {
         return Err("CEP com muitos dígitos".to_string());
     }
-    let cep = format!("{:08}", valor);
-    Ok(format!("{}-{}", &cep[0..5], &cep[5..8]))
+    Ok(format!("{:05}-{:03}", valor / 1000, valor % 1000))
 }
 
 /// Padroniza CEPs em formato textual para uma string formatada, retornando possíveis erros.
@@ -46,18 +45,28 @@ pub fn padronizar_cep(valor: &str) -> Result<String, String> {
     }
 
     if valor.trim().is_empty() {
-        return Ok("".to_string());
+        return Ok(String::new());
     }
 
-    let valor_numerico: String = valor.chars().filter(|c| c.is_numeric()).collect();
+    let valor_numerico: String = valor
+        .bytes()
+        .filter_map(|c| {
+            if c.is_ascii_digit() {
+                Some(c as char)
+            } else {
+                None
+            }
+        })
+        .collect();
 
     if valor_numerico.len() > 8 {
         return Err("CEP com muitos dígitos".to_string());
     }
 
     // Padding na esquerda
-    let cep = format!("{:0>8}", valor_numerico);
-    Ok(format!("{}-{}", &cep[0..5], &cep[5..8]))
+    let mut cep = format!("{:0>8}", valor_numerico);
+    cep.insert(5, '-'); // Garanto que não ocorre panic
+    Ok(cep)
 }
 
 /// Padroniza CEPs em formato textual para uma string formatada, tentando corrigir possíveis erros.
@@ -74,14 +83,25 @@ pub fn padronizar_cep(valor: &str) -> Result<String, String> {
 ///
 pub fn padronizar_cep_leniente(valor: &str) -> String {
     if valor.is_empty() {
-        return "".to_string();
+        return String::new();
     }
 
-    let valor_numerico: String = valor.chars().filter(|c| c.is_numeric()).take(8).collect();
+    let digitos: String = valor
+        .bytes()
+        .filter_map(|c| {
+            if c.is_ascii_digit() {
+                Some(c as char)
+            } else {
+                None
+            }
+        })
+        .take(8)
+        .collect();
 
     // Padding na esquerda
-    let cep = format!("{:0>8}", valor_numerico);
-    format!("{}-{}", &cep[0..5], &cep[5..8])
+    let mut cep = format!("{:0>8}", digitos);
+    cep.insert(5, '-');
+    cep
 }
 
 #[cfg(test)]
@@ -118,5 +138,12 @@ mod tests {
 
         // Teste novo
         assert_eq!(padronizar_cep("   ").unwrap(), "");
+
+        assert_eq!(padronizar_cep_numerico(22290140).unwrap(), "22290-140");
+    }
+    #[test]
+    fn padroniza_cep_forma_leniente() {
+        assert_eq!(padronizar_cep_leniente(""), "");
+        assert_eq!(padronizar_cep_leniente("a123b45  6"), "00123-456");
     }
 }

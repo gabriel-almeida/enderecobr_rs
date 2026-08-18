@@ -64,3 +64,72 @@ def testa_numero_por_extenso():
 
 def testa_romano_para_inteiro():
     assert enderecobr.romano_para_inteiro("VI") == 6
+
+
+def testa_padronizar_estados_para_codigo():
+    assert enderecobr.padronizar_estados_para_codigo("MA") == "21"
+
+
+def testa_padronizar_estados_para_sigla():
+    assert enderecobr.padronizar_estados_para_sigla("21") == "MA"
+
+
+def testa_padronizar_numeros_para_int():
+    assert enderecobr.padronizar_numeros_para_int("0210") == 210
+    assert enderecobr.padronizar_numeros_para_int("S/N") is None
+
+
+def testa_padronizar_numeros_para_string():
+    assert enderecobr.padronizar_numeros_para_string(210) == "210"
+    assert enderecobr.padronizar_numeros_para_string(0) == "S/N"
+
+
+def testa_identificar_dado_faltante():
+    assert enderecobr.is_dado_faltante("SI") is True
+    assert enderecobr.is_dado_faltante("RUA") is False
+
+
+def testa_normalizar():
+    assert enderecobr.normalizar("Olá, mundo") == "OLA, MUNDO"
+
+
+def testa_padronizar_cep():
+    assert enderecobr.padronizar_cep("12345-6") == "00123-456"
+
+
+def testa_padronizar_cep_numerico():
+    assert enderecobr.padronizar_cep_numerico(123456) == "00123-456"
+
+
+def testa_identificador_padroes():
+    idp = enderecobr.IdentificadorPadroes()
+    idp.adicionar(["RUA", "AVENIDA"])
+    assert idp.identificar("RUA AZUL") is True
+    assert idp.identificar("TRAVESSA") is False
+
+
+def testa_padronizador_adicionar():
+    pad = enderecobr.Padronizador()
+    pad.adicionar(r"R\.", "RUA")
+    pad.preparar()
+    assert pad.padronizar("R. AZUL") == "RUA AZUL"
+
+
+def testa_padronizador_adicionar_com_ignorar():
+    pad = enderecobr.Padronizador()
+    pad.adicionar_com_ignorar(r"^R ", "RUA ", r"R APT")
+    pad.preparar()
+    assert pad.padronizar("R APT AMARELA") == "R APT AMARELA"
+    assert pad.padronizar("R AMARELA") == "RUA AMARELA"
+
+
+def testa_padronizador_adicionar_vetores():
+    pad = enderecobr.Padronizador()
+    pad.adicionar_vetores(["R ", "AV "], ["RUA ", "AVENIDA "], [None, None])
+    assert pad.padronizar("R AZUL") == "RUA AZUL"
+
+
+def testa_padronizador_obter_vetores():
+    pad = enderecobr.Padronizador()
+    pad.adicionar_substituicoes([["R ", "RUA "]])
+    assert pad.obter_vetores() == (["R "], ["RUA "], [None])

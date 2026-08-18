@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crate::Padronizador;
+use crate::{dado_faltante::zerar_dado_faltante, Padronizador};
 
 pub fn criar_padronizador_complemento() -> Padronizador {
     let mut padronizador = Padronizador::default();
@@ -35,6 +35,13 @@ pub fn criar_padronizador_complemento() -> Padronizador {
 
         .adicionar(r"^I{4,}$", "") // IIII+
         .adicionar(r"^X{3,}$", "") // XXX+
+
+        // Complemento começa com OUTROS: caso de erro comum
+        .adicionar(r"^OUTROS\s", "")
+
+        // Zeros à esquerda
+        .adicionar(r"(^| )0+(\d+)( |$)", "$1$2$3")
+
         .adicionar(r"\bQD?-?(\d+)-?LT?-?(\d+)-?CS?-?(\d+)\b", "QUADRA $1 LOTE $2 CASA $3")
       .adicionar(r"\bQD?-?(\d+)-?CS?-?(\d+)-?LT?-?(\d+)\b", "QUADRA $1 LOTE $3 CASA $2")
       .adicionar(r"\bCS?-?(\d+)-?LT?-?(\d+)-?QD?-?(\d+)\b", "QUADRA $3 LOTE $2 CASA $1")
@@ -279,7 +286,9 @@ static PADRONIZADOR: LazyLock<Padronizador> = LazyLock::new(criar_padronizador_c
 pub fn padronizar_complementos(valor: &str) -> String {
     // Forma de obter a variável lazy
     let padronizador = &*PADRONIZADOR;
-    padronizador.padronizar(valor)
+    padronizador
+        .padronizar(&zerar_dado_faltante(valor))
+        .to_string()
 }
 
 #[cfg(test)]

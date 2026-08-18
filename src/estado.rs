@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::LazyLock};
+use rustc_hash::FxHashMap;
+use std::sync::LazyLock;
 
 use crate::{normalizar, Padronizador};
 
@@ -15,13 +16,13 @@ struct Estado {
 // quando uso `const`. Nesse caso, como tenho uma construção complexa da struct `Padronizador`,
 // tenho que usar static com inicialização Lazy (o LazyLock aqui previne condições de corrida).
 
-static ESTADOS_MAP: LazyLock<HashMap<String, &'static Estado>> = LazyLock::new(criar_estado_map);
+static ESTADOS_MAP: LazyLock<FxHashMap<String, &'static Estado>> = LazyLock::new(criar_estado_map);
 
 // O trecho &'static indica que estou referenciando uma posição de memória estática,
 // o que evita cópias desnecessárias.
 
-fn criar_estado_map() -> HashMap<String, &'static Estado> {
-    let mut estados = HashMap::<String, &'static Estado>::with_capacity(ESTADOS.len());
+fn criar_estado_map() -> FxHashMap<String, &'static Estado> {
+    let mut estados = FxHashMap::<String, &'static Estado>::default();
     ESTADOS.iter().for_each(|e| {
         estados.insert(e.sigla.to_string(), e);
         estados.insert(e.codigo.to_string(), e);
@@ -37,7 +38,10 @@ fn criar_padronizador() -> Padronizador {
     let mut padronizador = Padronizador::default();
 
     padronizador.adicionar(r"\b0+(\d+)\b", "$1");
-    padronizador.adicionar(r"\s{2,}", " ");
+    // remove qualquer coisa que não seja letras, números ou espaço
+    padronizador.adicionar(r"[^ 0-9A-Z]", "");
+    padronizador.adicionar(r"\s{2,}", " "); // reduz os espaços em branco
+    padronizador.adicionar(r"^\s+|\s+$", ""); // faz um trim improvisado
 
     padronizador.preparar();
     padronizador
@@ -59,6 +63,8 @@ fn criar_padronizador() -> Padronizador {
 /// assert_eq!(padronizar_estados_para_sigla(""), "");
 /// assert_eq!(padronizar_estados_para_sigla("me"), "");
 /// assert_eq!(padronizar_estados_para_sigla("maranhao"), "MA");
+/// assert_eq!(padronizar_estados_para_sigla("banana"), "");
+/// assert_eq!(padronizar_estados_para_sigla("@  @  @ Maranhão !!!"), "MA")
 /// ```
 ///
 /// # Detalhes
@@ -92,6 +98,8 @@ pub fn padronizar_estados_para_sigla(valor: &str) -> &'static str {
 /// assert_eq!(padronizar_estados_para_codigo(""), "");
 /// assert_eq!(padronizar_estados_para_codigo("me"), "");
 /// assert_eq!(padronizar_estados_para_codigo("maranhao"), "21");
+/// assert_eq!(padronizar_estados_para_codigo("banana"), "");
+/// assert_eq!(padronizar_estados_para_codigo("@  @  @ Maranhão !!!"), "21");
 /// ```
 ///
 /// # Detalhes
@@ -126,6 +134,7 @@ pub fn padronizar_estados_para_codigo(valor: &str) -> &'static str {
 /// assert_eq!(padronizar_estados_para_nome(""), "");
 /// assert_eq!(padronizar_estados_para_nome("me"), "");
 /// assert_eq!(padronizar_estados_para_nome("maranhao"), "MARANHAO");
+/// assert_eq!(padronizar_estados_para_nome("@  @  @ Maranhão !!!"), "MARANHAO");
 /// ```
 ///
 /// # Detalhes
@@ -304,5 +313,11 @@ mod tests {
         assert_eq!(padronizar_estados_para_sigla("ma"), "MA");
         assert_eq!(padronizar_estados_para_sigla(""), ""); // NA
         assert_eq!(padronizar_estados_para_sigla("MARANHÃO"), "MA");
+
+        assert_eq!(padronizar_estados_para_codigo("MARANHAO"), "21");
+
+        assert_eq!(padronizar_estados_para_nome("MARANHÃO"), "MARANHAO");
+        assert_eq!(padronizar_estados_para_codigo("Banana"), "");
+        assert_eq!(padronizar_estados_para_sigla("Banana"), "");
     }
 }

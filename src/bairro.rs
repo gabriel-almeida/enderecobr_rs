@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crate::Padronizador;
+use crate::{dado_faltante::zerar_dado_faltante, Padronizador};
 
 pub fn criar_padronizador_bairros() -> Padronizador {
     let mut padronizador = Padronizador::default();
@@ -186,7 +186,7 @@ static PADRONIZADOR_BAIRROS: LazyLock<Padronizador> = LazyLock::new(criar_padron
 pub fn padronizar_bairros(valor: &str) -> String {
     // Forma de obter a variável lazy
     let padronizador = &*PADRONIZADOR_BAIRROS;
-    padronizador.padronizar(valor)
+    padronizador.padronizar(&zerar_dado_faltante(valor))
 }
 
 #[cfg(test)]

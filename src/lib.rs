@@ -9,6 +9,7 @@ use regex::{Regex, RegexSet};
 pub mod bairro;
 pub mod cep;
 pub mod complemento;
+pub mod dado_faltante;
 pub mod estado;
 pub mod logradouro;
 pub mod metaphone;
@@ -92,9 +93,10 @@ pub struct ParSubstituicao {
 impl ParSubstituicao {
     fn new(regex: &str, substituicao: &str, regex_ignorar: Option<&str>) -> Self {
         ParSubstituicao {
-            regexp: Regex::new(regex).unwrap(),
+            regexp: Regex::new(regex).expect("Expressão regular inválida"),
             substituicao: substituicao.to_uppercase().to_string(),
-            regexp_ignorar: regex_ignorar.map(|r| Regex::new(r).unwrap()),
+            regexp_ignorar: regex_ignorar
+                .map(|r| Regex::new(r).expect("Expressão regular para `regexp_ignorar` inválida")),
         }
     }
 }
@@ -126,21 +128,19 @@ impl Padronizador {
     /// Este método é projetado para interoperabilidade com linguagens dinâmicas (ex: Python),
     /// onde estruturas heterogêneas são comuns.
     pub fn adicionar_pares(&mut self, pares: &[&[Option<&str>]]) {
-        for p in pares
-            .iter()
-            .map(|p| p.iter().filter_map(|i| i.as_ref()).collect::<Vec<_>>())
-        {
-            if p.is_empty() {
-                continue;
-            }
-            if p.len() == 1 {
-                self.adicionar(p[0], "");
-            }
-            if p.len() == 2 {
-                self.adicionar(p[0], p[1]);
-            }
-            if p.len() >= 3 {
-                self.adicionar_com_ignorar(p[0], p[1], p[2]);
+        for p in pares {
+            let mut valores = p.iter().filter_map(|i| *i);
+            match (valores.next(), valores.next(), valores.next()) {
+                (None, _, _) => (),
+                (Some(a), None, _) => {
+                    self.adicionar(a, "");
+                }
+                (Some(a), Some(b), None) => {
+                    self.adicionar(a, b);
+                }
+                (Some(a), Some(b), Some(c)) => {
+                    self.adicionar_com_ignorar(a, b, c);
+                }
             }
         }
         self.preparar();
@@ -230,7 +230,8 @@ impl Padronizador {
             .map(|par| par.regexp.as_str())
             .collect();
 
-        self.grupo_regex = RegexSet::new(regexes).unwrap();
+        // Não deveria acontecer: O erro já deveria ocorrer na construção do objeto.
+        self.grupo_regex = RegexSet::new(regexes).expect("Regex inválida: Erro interno");
     }
 
     /// Aplica todas as regras de substituição ao texto de entrada até que nenhuma nova
@@ -242,7 +243,7 @@ impl Padronizador {
     ///
     /// Retorna uma nova `String` com o texto padronizado.
     pub fn padronizar(&self, valor: &str) -> String {
-        return self.padronizar_cow(valor).to_string();
+        self.padronizar_cow(valor).to_string()
     }
 
     // Função otimizada para não re-alocar strings quando desnecessário.
@@ -263,7 +264,9 @@ impl Padronizador {
             };
 
             ultimo_idx = idx_substituicao;
-            let par = &self.substituicoes[idx];
+            let Some(par) = self.substituicoes.get(idx) else {
+                break; // Não deveria acontecer.
+            };
 
             // FIXME: essa solução dá problema quando eu tenho mais de um match da regexp
             // original. Precisaria de uma heurística melhor.
@@ -362,11 +365,32 @@ pub fn normalizar(valor: &str) -> Cow<'_, str> {
         .collect()
 }
 
+/// Wrapper fino sobre o RegexSet para permitir localizar padrões rapidamente.
+#[derive(Default)]
+pub struct IdentificadorPadroes {
+    padroes: Vec<String>,
+    regex_set: RegexSet,
+}
+
+impl IdentificadorPadroes {
+    pub fn adicionar(&mut self, regexs: &[String]) -> &mut Self {
+        self.padroes.extend(regexs.iter().map(|x| x.to_owned()));
+        self.regex_set =
+            RegexSet::new(self.padroes.iter()).expect("RegexSet inválida: erro de compilação.");
+        self
+    }
+
+    pub fn identificar(&self, valor: &str) -> bool {
+        self.regex_set.is_match(valor)
+    }
+}
+
 pub use bairro::padronizar_bairros;
 pub use cep::padronizar_cep;
 pub use cep::padronizar_cep_leniente;
 pub use cep::padronizar_cep_numerico;
 pub use complemento::padronizar_complementos;
+pub use dado_faltante::is_dado_faltante;
 pub use estado::padronizar_estados_para_codigo;
 pub use estado::padronizar_estados_para_nome;
 pub use estado::padronizar_estados_para_sigla;
@@ -396,9 +420,10 @@ pub fn obter_padronizador_por_tipo(tipo: &str) -> Result<fn(&str) -> String, &st
         "estado_nome" => Ok(|x| padronizar_estados_para_nome(x).to_string()),
         "estado_codigo" => Ok(|x| padronizar_estados_para_codigo(x).to_string()),
         "municipio" | "mun" => Ok(padronizar_municipios),
-        "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or("".to_string())),
+        "cep" => Ok(|cep| padronizar_cep(cep).unwrap_or_else(|_| String::new())),
         "cep_leniente" => Ok(padronizar_cep_leniente),
         "metaphone" => Ok(metaphone::metaphone),
+        "dado_faltante" => Ok(|x| is_dado_faltante(x).to_string()),
 
         #[cfg(feature = "experimental")]
         "completo" => Ok(padronizar_endereco_bruto),
@@ -484,5 +509,195 @@ mod tests {
     fn test_adicionar_vetores_tamanho_diferente() {
         let mut pad = Padronizador::default();
         pad.adicionar_vetores(&["a"], &["b"], &[Some("x"), Some("y")]);
+    }
+
+    #[test]
+    fn test_adicionar_pares_somente_regex() {
+        // Arm `(Some(a), None, _)`: apenas regex, substituição vazia.
+        let mut pad = Padronizador::default();
+        pad.adicionar_pares(&[&[Some("X")], &[Some("Y"), None]]);
+
+        assert_eq!(pad.obter_pares(), vec![("X", "", None), ("Y", "", None)]);
+    }
+
+    #[test]
+    fn test_endereco_campos_padronizados() {
+        let endereco = Endereco {
+            logradouro: Some("r. gen.. glicério".to_string()),
+            numero: Some("001".to_string()),
+            complemento: Some("apto. 405".to_string()),
+            localidade: Some("jd botânico".to_string()),
+        };
+
+        assert_eq!(
+            endereco.logradouro_padronizado(),
+            Some("RUA GENERAL GLICERIO".to_string())
+        );
+        assert_eq!(endereco.numero_padronizado(), Some("1".to_string()));
+        assert_eq!(
+            endereco.complemento_padronizado(),
+            Some("APARTAMENTO 405".to_string())
+        );
+        assert_eq!(
+            endereco.localidade_padronizada(),
+            Some("JARDIM BOTANICO".to_string())
+        );
+    }
+
+    #[test]
+    fn test_endereco_padronizado_completo() {
+        let endereco = Endereco {
+            logradouro: Some("r. do aço".to_string()),
+            numero: Some("210".to_string()),
+            complemento: Some("qd 5".to_string()),
+            localidade: Some("prq ind".to_string()),
+        };
+
+        let esperado = Endereco {
+            logradouro: Some("RUA DO ACO".to_string()),
+            numero: Some("210".to_string()),
+            complemento: Some("QUADRA 5".to_string()),
+            localidade: Some("PARQUE INDUSTRIAL".to_string()),
+        };
+        assert_eq!(endereco.endereco_padronizado(), esperado);
+    }
+
+    #[test]
+    fn test_endereco_padronizado_campos_none() {
+        // Campos `None` permanecem `None` após padronização.
+        let endereco = Endereco::default();
+        assert_eq!(endereco.endereco_padronizado(), Endereco::default());
+
+        let endereco_parcial = Endereco {
+            logradouro: Some("r. x".to_string()),
+            ..Default::default()
+        };
+        let esperado = Endereco {
+            logradouro: Some("RUA X".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(endereco_parcial.endereco_padronizado(), esperado);
+    }
+
+    #[test]
+    fn test_endereco_formatar() {
+        // Campos None são omitidos; campos com texto são retrimados.
+        let endereco = Endereco {
+            logradouro: Some("  RUA A  ".to_string()),
+            numero: Some("123".to_string()),
+            complemento: None,
+            localidade: Some("CENTRO".to_string()),
+        };
+        assert_eq!(endereco.formatar(), "RUA A, 123, CENTRO");
+    }
+
+    #[test]
+    fn test_endereco_formatar_vazio() {
+        assert_eq!(Endereco::default().formatar(), "");
+    }
+
+    #[test]
+    fn test_obter_padronizador_por_tipo() {
+        // Logradouro
+        assert_eq!(
+            obter_padronizador_por_tipo("logradouro").unwrap()("r. gen"),
+            "RUA GENERAL"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("logr").unwrap()("r. gen"),
+            "RUA GENERAL"
+        );
+
+        // Tipo de logradouro
+        assert_eq!(
+            obter_padronizador_por_tipo("tipo_logradouro").unwrap()("R"),
+            "RUA"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("tipo_logr").unwrap()("AVE"),
+            "AVENIDA"
+        );
+
+        // Número
+        assert_eq!(obter_padronizador_por_tipo("numero").unwrap()("001"), "1");
+        assert_eq!(obter_padronizador_por_tipo("num").unwrap()("001"), "1");
+
+        // Bairro
+        assert_eq!(
+            obter_padronizador_por_tipo("bairro").unwrap()("prq ind"),
+            "PARQUE INDUSTRIAL"
+        );
+
+        // Complemento
+        assert_eq!(
+            obter_padronizador_por_tipo("complemento").unwrap()("apto 405"),
+            "APARTAMENTO 405"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("comp").unwrap()("apto 405"),
+            "APARTAMENTO 405"
+        );
+
+        // Estado (sigla, nome, código)
+        assert_eq!(obter_padronizador_por_tipo("estado").unwrap()("21"), "MA");
+        assert_eq!(
+            obter_padronizador_por_tipo("estado_nome").unwrap()("21"),
+            "MARANHAO"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("estado_codigo").unwrap()("MA"),
+            "21"
+        );
+
+        // Município
+        assert_eq!(
+            obter_padronizador_por_tipo("municipio").unwrap()("3304557"),
+            "RIO DE JANEIRO"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("mun").unwrap()("3304557"),
+            "RIO DE JANEIRO"
+        );
+
+        // CEP
+        assert_eq!(
+            obter_padronizador_por_tipo("cep").unwrap()("12345-6"),
+            "00123-456"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("cep_leniente").unwrap()("a123b45  6"),
+            "00123-456"
+        );
+
+        // CEP inválido retorna string vazia
+        assert_eq!(obter_padronizador_por_tipo("cep").unwrap()("999999999"), "");
+
+        // Metaphone
+        assert_eq!(
+            obter_padronizador_por_tipo("metaphone").unwrap()("João Silva"),
+            "JOAO SILVA"
+        );
+
+        // Dado faltante
+        assert_eq!(
+            obter_padronizador_por_tipo("dado_faltante").unwrap()("SI"),
+            "true"
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo("dado_faltante").unwrap()("RUA B"),
+            "false"
+        );
+    }
+
+    #[test]
+    fn test_obter_padronizador_por_tipo_invalido() {
+        assert_eq!(
+            obter_padronizador_por_tipo("banana"),
+            Err("Nenhum padronizador encontrado")
+        );
+        assert_eq!(
+            obter_padronizador_por_tipo(""),
+            Err("Nenhum padronizador encontrado")
+        );
     }
 }

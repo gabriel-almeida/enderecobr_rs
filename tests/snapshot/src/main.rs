@@ -1,4 +1,6 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
+use std::hash::Hash;
 use std::time::Instant;
 
 use clap::Parser;
@@ -86,35 +88,39 @@ impl SerializadorSnapshot<String> for SerializadorString {
 // Classe principal
 //////////////////
 
-trait SnapshotTester {
+trait SnapshotTester<T> {
     fn salvar_snapshot(&self, base_path: &str) -> Result<String, String>;
-    fn comparar_snapshot(&self, base_path: &str) -> Result<String, String>;
+    fn comparar_snapshot(&self, base_path: &str) -> Result<(), String>;
+    fn comparar_pareamentos(
+        &self,
+        base_path: &str,
+        bruto: &[T],
+        snapshot: &[T],
+    ) -> Result<(), String>;
 }
 
-struct SnapshotTesterImpl<T, U, I, O>
+struct SnapshotTesterImpl<T, I, O>
 where
     I: SerializadorSnapshot<T>,
-    O: SerializadorSnapshot<U>,
-    U: PartialEq,
+    O: SerializadorSnapshot<T>,
 {
     nome: &'static str,
     serializador_entrada: I,
     serializador_saida: O,
-    processador: fn(&T) -> U,
+    processador: fn(&T) -> T,
 }
 
-impl<T, U, I, O> SnapshotTester for SnapshotTesterImpl<T, U, I, O>
+impl<T, I, O> SnapshotTester<T> for SnapshotTesterImpl<T, I, O>
 where
     I: SerializadorSnapshot<T>,
-    O: SerializadorSnapshot<U>,
-    T: Display,
-    U: PartialEq + Display,
+    O: SerializadorSnapshot<T>,
+    T: PartialEq + Display + Eq + Hash + Clone,
 {
     fn salvar_snapshot(&self, base_path: &str) -> Result<String, String> {
         let valores_brutos = self
             .serializador_entrada
             .carregar(base_path, self.nome, "bruto")?;
-        let valores_processados: Vec<U> = valores_brutos
+        let valores_processados: Vec<T> = valores_brutos
             .iter()
             .map(|x| (self.processador)(x))
             .collect();
@@ -123,7 +129,7 @@ where
             .salvar(base_path, self.nome, "snapshot", valores_processados)
     }
 
-    fn comparar_snapshot(&self, base_path: &str) -> Result<String, String> {
+    fn comparar_snapshot(&self, base_path: &str) -> Result<(), String> {
         let valores_brutos = self
             .serializador_entrada
             .carregar(base_path, self.nome, "bruto")?;
@@ -136,6 +142,14 @@ where
             valores_brutos.len(),
             "Os arquivos com os dados brutos e de snapshot têm tamanhos diferentes."
         );
+
+        // Entrada e snapshot ambos vazios (condição já garantida pelo assert_eq
+        // de tamanho acima): nada a comparar. Retornar aqui evita ainda a
+        // divisão por zero em `duracao / valores_snapshot.len()` abaixo.
+        if valores_snapshot.is_empty() {
+            println!("Entrada e snapshot vazios; nada a comparar.");
+            return Ok(());
+        }
 
         let inicio = Instant::now();
         let res: Vec<_> = valores_brutos
@@ -166,12 +180,127 @@ where
             tempo_por_qtd,
             (1f64 / tempo_por_qtd as f64) * 1_000_000_000f64
         );
+        println!();
 
         if !res.is_empty() {
-            return Ok(Table::new(res).with(Style::markdown()).to_string());
+            println!("### Mudanças encontradas:");
+            println!();
+            println!("{:}", Table::new(res).with(Style::markdown()));
+        } else {
+            println!("Nenhuma mudança identificada.");
+        }
+        println!();
+
+        self.comparar_pareamentos(base_path, &valores_brutos, &valores_snapshot)?;
+
+        Ok(())
+    }
+
+    fn comparar_pareamentos(
+        &self,
+        base_path: &str,
+        brutos: &[T],
+        snapshot: &[T],
+    ) -> Result<(), String> {
+        let referencia_res = self
+            .serializador_entrada
+            .carregar(base_path, self.nome, "referencia");
+
+        if referencia_res.is_err() {
+            // Não existir referência é uma situação legítima
+            return Ok(());
         }
 
-        Ok("Nenhuma mudança identificada.".to_string())
+        // Valores de Referência tratados com a versão atual e a anterior do pacote.
+        let mut idx_ref_novas = HashMap::<String, HashSet<Comparacao>>::new();
+        let mut idx_ref_antigas = HashMap::<String, HashSet<Comparacao>>::new();
+        for r in referencia_res.unwrap() {
+            let comparacao = Comparacao {
+                versao_antiga: r.to_string(),
+                versao_nova: (self.processador)(&r).to_string(),
+            };
+            idx_ref_novas
+                .entry(comparacao.versao_nova.clone())
+                .or_default()
+                .insert(comparacao.clone());
+
+            idx_ref_antigas
+                .entry(comparacao.versao_antiga.clone())
+                .or_default()
+                .insert(comparacao.clone());
+        }
+
+        ////////
+
+        // Valores processados com a versão antiga que batem com os valores de referência processados também com a versão antiga
+        let pareados_antiga: HashSet<_> = snapshot
+            .iter()
+            .filter_map(|antiga| idx_ref_antigas.get(&antiga.to_string()))
+            .flatten()
+            .cloned()
+            .collect();
+
+        // Valores processados com a versão atual que batem com os valores de referência tratados
+        // com a versão atual.
+        let pareados_novos: HashSet<_> = brutos
+            .iter()
+            .filter_map(|bruto| {
+                let processado = (self.processador)(bruto);
+                idx_ref_novas.get(&processado.to_string())
+            })
+            .flatten()
+            .cloned()
+            .collect();
+
+        ////////////
+
+        // quem está pareado na versão antiga que não está pareado na versão nova
+        let regressoes: Vec<_> = pareados_antiga
+            .iter()
+            .filter(|x| !pareados_novos.contains(*x))
+            .collect();
+
+        // quem está pareado na versão nova mas não está na versão antiga
+        let melhorias = pareados_novos
+            .iter()
+            .filter(|x| !pareados_antiga.contains(*x))
+            .count();
+
+        ////////////
+
+        println!("### Avaliação de pareamento:");
+        println!(
+            "> Pareamento de {} com base de referência: {}/{} total ({:.2}%)",
+            self.nome,
+            pareados_novos.len(),
+            brutos.len(),
+            pareados_novos.len() as f64 * 100f64 / brutos.len() as f64
+        );
+
+        println!(
+            "> Foram pareados {} novos casos em relação a versão anterior ({}  na versão nova vs {} na versão antiga => aumento de {:.2}% absoluto)",
+            melhorias,
+            pareados_novos.len(),
+            pareados_antiga.len(),
+            (pareados_novos.len() as f64 - pareados_antiga.len() as f64) * 100f64 / brutos.len() as f64,
+        );
+
+        if !regressoes.is_empty() {
+            println!();
+            println!(
+                "## Regressões do pareamento de {} da versão antiga (snapshot) em relação à versão atual ({}/{} casos => {:.2}%):",
+                self.nome,
+                regressoes.len(),
+                brutos.len(),
+                regressoes.len() as f64 * 100f64 / brutos.len() as f64
+            );
+            println!();
+            println!(
+                "{:}",
+                Table::new(regressoes.iter().take(20)).with(Style::markdown())
+            );
+        }
+        Ok(())
     }
 }
 
@@ -182,11 +311,16 @@ struct Diff {
     atual: String,
 }
 
+#[derive(Tabled, Hash, PartialEq, Eq, Clone)]
+struct Comparacao {
+    versao_antiga: String,
+    versao_nova: String,
+}
 /////////////////
 // Utilitários
 ////////////////
 
-fn obter_snapshot_tester_dyn(nome_teste: &str) -> Box<dyn SnapshotTester> {
+fn obter_snapshot_tester_dyn(nome_teste: &str) -> Box<dyn SnapshotTester<String>> {
     match nome_teste {
         "logr" => Box::new(SnapshotTesterImpl {
             nome: "logradouro",
@@ -264,9 +398,7 @@ fn main() -> Result<(), String> {
             let arq = tester.salvar_snapshot(&args.caminho)?;
             println!("Snapshot salvo em {}", arq);
         } else {
-            let diffs = tester.comparar_snapshot(&args.caminho);
-            println!();
-            println!("{:}", diffs?);
+            tester.comparar_snapshot(&args.caminho)?;
             println!();
         }
     }

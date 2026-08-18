@@ -5,8 +5,19 @@ use crate::Padronizador;
 pub fn criar_padronizador_numeros() -> Padronizador {
     let mut padronizador = Padronizador::default();
     padronizador
+        // Apaga pares de caracteres comuns
+        .adicionar(r"\((.*?)\)", " $1")
+        .adicionar("\"(.*?)\"", " $1")
+        .adicionar(r"'(.*?)'", " $1")
         // Regexp adicional: remove espaços em branco repetidos
         .adicionar(r"\s{2,}", " ")
+        // Apaga qualquer coisa que não seja letra ou número no inicio ou fim
+        .adicionar(r"^[^A-Z0-9]+|[^A-Z0-9]+$", "")
+        // Remove prefixo de número
+        .adicionar(
+            r"^N(O|OS|\.O|U|UM|NUMERO| )?( |\.|:| |O|-|\*)*([0-9]+)",
+            "$3",
+        )
         // Regexp Original: (?<!\.)\b0+(\d+)\b
         // 015 -> 15, 00001 -> 1, 0180 0181 -> 180 181, mas não 1.028 -> 1.28
         // A ideia da regexp original é tirar zeros à esquerda que não sejam separadores de milhar.
@@ -15,9 +26,15 @@ pub fn criar_padronizador_numeros() -> Padronizador {
         // separador de milhar
         .adicionar(r"(\d+)\.(\d{3})", "$1$2")
         // SN ou S.N. ou S N ou .... -> S/N
-        .adicionar(r"S\.?( |\/)?N(O|º)?\.?", "S/N")
-        .adicionar(r"SEM NUMERO", "S/N")
+        .adicionar(
+            r"^(S|SE|SEM)?(\/|;|-|\\|\.| )*(N|N\.)(A|O|E|U|C|R|S|UM|UME|UMER|UMERO)?(0| |º|\.)*$",
+            "S/N",
+        )
+        .adicionar(r"^N(AO|O)? TEM$", "S/N")
+        .adicionar(r"^(SEM NUMERO|NULL|NA|IGNORADO)$", "S/N")
         .adicionar(r"^(X|0|-)+$", "S/N")
+        // Substitui range de números pelo o primeiro número
+        .adicionar(r"^(\d+)([,/-]\d+)+$", "$1")
         // Regexp adicional: string vazia => S/N
         .adicionar("^$", "S/N");
 
@@ -133,7 +150,7 @@ mod tests {
         let test_cases = [
             (" 1 ", "1"),
             ("s/n", "S/N"),
-            ("NÚMERO", "NUMERO"),
+            ("NÚMERO", "S/N"),
             ("0001", "1"),
             ("01 02", "1 2"),
             ("20.100", "20100"),
@@ -151,7 +168,6 @@ mod tests {
             ("S/Nº", "S/N"),
             ("S./N.", "S/N"),
             ("S./Nº.", "S/N"),
-            ("S./N. S N", "S/N S/N"),
             ("SEM NUMERO", "S/N"),
             ("X", "S/N"),
             ("XX", "S/N"),

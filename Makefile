@@ -18,6 +18,9 @@ doc:
 test:
 	cargo test
 
+coverage:
+	cargo llvm-cov --show-missing-lines
+
 # ==== Utilitários para os testes de Snapshot ====
 
 # Esses targets chamam o `snapshot-download` antes de rodar os testes,

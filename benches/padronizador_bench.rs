@@ -11,7 +11,7 @@ pub fn padronizador_bench(c: &mut Criterion) {
     let padr = criar_padronizador_logradouros();
     let mut group = c.benchmark_group("padronizador");
 
-    for &n in &["RUA AZUL", "R AZUL", "AV PROFA NS GRACA"] {
+    for &n in &["RUA AZUL", "R AZUL", "AV PROFA NS GRACA", "NÃO SEI"] {
         group.bench_with_input(n, &n, |b, &n| {
             b.iter(|| padr.padronizar(black_box(n)));
         });

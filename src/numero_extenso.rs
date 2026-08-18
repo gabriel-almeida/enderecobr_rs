@@ -211,8 +211,8 @@ pub fn numero_por_extenso(n: i32) -> Cow<'static, str> {
     // Retorna a referência estática para os casos até 100
     fn resolver_centenas(n: u32) -> Cow<'static, str> {
         // Se for menor que 100, usa a tabela ATE_CEM
-        if n < ATE_CEM.len() as u32 {
-            return Cow::Borrowed(ATE_CEM[n as usize]);
+        if let Some(valor) = ATE_CEM.get(n as usize) {
+            return Cow::Borrowed(valor);
         }
 
         let centena = n / 100; // extrai a casa das centenas
@@ -222,8 +222,10 @@ pub fn numero_por_extenso(n: i32) -> Cow<'static, str> {
         let mut resultado = String::with_capacity(10);
 
         if centena > 0 {
-            // Adiciona palavra da centena (ex: "DUZENTOS")
-            resultado.push_str(CENTENAS[centena as usize]);
+            if let Some(valor) = CENTENAS.get(centena as usize) {
+                // Adiciona palavra da centena (ex: "DUZENTOS")
+                resultado.push_str(valor);
+            }
         }
 
         if centena > 0 && dezenas > 0 {
@@ -232,8 +234,10 @@ pub fn numero_por_extenso(n: i32) -> Cow<'static, str> {
         }
 
         if dezenas > 0 {
-            // Adiciona parte das dezenas (ex: "VINTE E CINCO")
-            resultado.push_str(ATE_CEM[dezenas as usize]);
+            if let Some(valor) = ATE_CEM.get(dezenas as usize) {
+                // Adiciona parte das dezenas (ex: "VINTE E CINCO")
+                resultado.push_str(valor);
+            }
         }
 
         Cow::Owned(resultado)
@@ -312,11 +316,12 @@ pub fn numero_por_extenso(n: i32) -> Cow<'static, str> {
 
         // Seleciona o sufixo singular ou plural baseado no valor do
         // grupo de 3 dígitos
-        let (singular, plural) = ORDENS_GRANDEZA[(ordem_grandeza - 1) as usize];
-        if mais_significativo == 1 {
-            resultado.push_str(singular);
-        } else {
-            resultado.push_str(plural);
+        if let Some((singular, plural)) = ORDENS_GRANDEZA.get((ordem_grandeza - 1) as usize) {
+            if mais_significativo == 1 {
+                resultado.push_str(singular);
+            } else {
+                resultado.push_str(plural);
+            }
         }
     }
 
@@ -328,7 +333,6 @@ pub fn numero_por_extenso(n: i32) -> Cow<'static, str> {
 static REGEX_ROMANO: LazyLock<Regex> = LazyLock::new(criar_regex_romano);
 static REGEX_ROMANO_TRIAGEM: LazyLock<Regex> = LazyLock::new(criar_regex_romano_triagem);
 
-#[allow(clippy::expect_used)]
 pub fn criar_regex_romano() -> Regex {
     // Aceita 3999, depois disso começa a usar um traço em cima, que não existe em ASCII.
     // Como essa regexp é só para validar o resultado da triagem, uso as âncoras
@@ -337,7 +341,6 @@ pub fn criar_regex_romano() -> Regex {
         .expect("Regex romano inválida (bug interno)")
 }
 
-#[allow(clippy::expect_used)]
 pub fn criar_regex_romano_triagem() -> Regex {
     Regex::new(r"(?i)\b[MDCLXVI]+\b").expect("Regex romano triagem inválida (bug interno)")
 }
@@ -369,10 +372,11 @@ pub fn padronizar_numero_romano_por_extenso(valor: &str) -> Cow<'_, str> {
     for m in REGEX_ROMANO_TRIAGEM.find_iter(valor) {
         let inicio = m.start();
         let fim = m.end();
+        let romano = m.as_str();
 
         // A triagem não captura string vazia, mas vou manter
         // porque tive problemas com isso.
-        if inicio == fim || !REGEX_ROMANO.is_match(&valor[inicio..fim]) {
+        if inicio == fim || !REGEX_ROMANO.is_match(romano) {
             continue;
         }
 
@@ -380,9 +384,12 @@ pub fn padronizar_numero_romano_por_extenso(valor: &str) -> Cow<'_, str> {
         let trecho_atual = resultado_opt.get_or_insert_with(|| String::with_capacity(valor.len()));
 
         // Copia trecho antes do match
-        trecho_atual.push_str(&valor[ultimo..inicio]);
+        let valor_antes_match = valor
+            .get(ultimo..inicio)
+            .expect("String deveria ter caracteres entre [ultimo, inicio]");
 
-        let romano = &valor[inicio..fim];
+        trecho_atual.push_str(valor_antes_match);
+
         let n = romano_para_inteiro(romano);
         trecho_atual.push_str(numero_por_extenso(n).as_ref());
 
@@ -392,7 +399,11 @@ pub fn padronizar_numero_romano_por_extenso(valor: &str) -> Cow<'_, str> {
     match resultado_opt {
         None => Cow::Borrowed(valor),
         Some(mut s) => {
-            s.push_str(&valor[ultimo..]);
+            s.push_str(
+                valor
+                    .get(ultimo..)
+                    .expect("String '{valor}' deveria ter caracteres após {ultimo}"),
+            );
             Cow::Owned(s)
         }
     }

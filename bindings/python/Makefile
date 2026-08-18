@@ -1,13 +1,14 @@
-.PHONY: build doc test ativar-venv
+.PHONY: build sync doc test
 
 build:
-	maturin develop
+	uv run maturin develop
+
+sync:
+	uv sync
 
 doc:
-	mkdocs serve
+	uv run --extra doc mkdocs serve
 
 test:
-	pytest --cov
+	uv run pytest --cov
 
-ativar-venv:
-	source .venv/bin/activate

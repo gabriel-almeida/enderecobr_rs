@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-use crate::Padronizador;
+use crate::{dado_faltante::zerar_dado_faltante, Padronizador};
 
 pub fn criar_padronizador_logradouros() -> Padronizador {
     let mut padronizador = Padronizador::default();
@@ -17,6 +17,7 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r" \.", ".") // garantir que não haja um espaço antes dos pontos
         .adicionar(r" ," , ",") // garantir que não haja um espaço antes dos pontos
         .adicionar(r"\.$", "") // remoção de ponto final
+        .adicionar(r"\\", "/") // Contra-barra \ => Barra /
 
         // Sinalização
         .adicionar("\"", "'") // existem ocorrencias em que aspas duplas sao usadas para se referir a um logradouro/quadra com nome relativamente ambiguo - e.g. RUA \"A\", 26. isso pode causar um problema quando lido com o data.table: https://github.com/Rdatatable/data.table/issues/4779. por enquanto, substituindo por aspas simples. Depois a gente pode ver o que fazer com as aspas simples rs.
@@ -36,6 +37,9 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
 
         .adicionar(r"^I{4,}$", "") // IIII+
         .adicionar(r"^X{3,}$", "") // XXX+
+
+        // Logradouro começa com OUTROS: Caso de erro comum
+        .adicionar(r"^OUTROS\s", "")
 
         // tipos de logradouro
         .adicionar(r"^RU?\b(\.|,)?", "RUA") // R. AZUL -> RUA AZUL
@@ -254,7 +258,7 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r"\b(RO|AC|AM|RR|PA|AP|TO|MA|PI|CE|RN|PB|PE|AL|SE|BA|MG|ES|RJ|SP|PR|SC|RS|MS|MT|GO|DF) ?(\d{3})", "$1-$2")
 
         // 0 à esquerda
-        .adicionar(r" (0)(\d+)", " $2")
+        .adicionar(r"(^| )0+(\d+)\b", "$1$2")
 
         // correções de problemas ocasionados pelos filtros acima
         .adicionar(r"\bTENENTE SHI\b", "TEN SHI")
@@ -314,7 +318,7 @@ static PADRONIZADOR: LazyLock<Padronizador> = LazyLock::new(criar_padronizador_l
 pub fn padronizar_logradouros(valor: &str) -> String {
     // Forma de obter a variável lazy
     let padronizador = &*PADRONIZADOR;
-    padronizador.padronizar(valor)
+    padronizador.padronizar(&zerar_dado_faltante(valor))
 }
 
 #[cfg(test)]
