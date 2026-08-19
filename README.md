@@ -50,7 +50,7 @@ Ou adicionando em no seu `Cargo.toml`:
 
 ```toml
 [dependencies]
-enderecobr_rs = { version = "0.0.3" }
+enderecobr_rs = { version = "0.2.0" }
 ```
 
 ## Exemplo de uso
@@ -70,6 +70,25 @@ import enderecobr
 assert enderecobr.padronizar_logradouros("r. gen.. glicério") == "RUA GENERAL GLICERIO"
 assert enderecobr.padronizar_logradouros("QD1 LT2 CS3") == "QUADRA 1 LOTE 2 CASA 3"
 ```
+
+
+## Release
+
+```bash
+# Utilitário que ajuda a altera a versão nos arquivos necessários 
+# (Cargo.toml e pyproject.toml), além de fazr um commit deles e cria a tag no git.
+./bump-versao-release.sh 0.2.0
+
+# Faz o push do commit e da tag para o repositório principal.
+# O Github CI deve fazer o restante das checagens, compilações e gatilhos necessários.
+git push origin
+git push origin v0.2.0
+
+## Em caso de erro, antes de fazer o push, é possível reverter o commit e apagar a tag
+# git reset HEAD^
+# git tag -d v0.2.0
+```
+
 
 ## Nota <a href="https://www.ipea.gov.br"><img src="./assets/ipea_logo.png" alt="Ipea" align="right" width="300"/></a>
 
