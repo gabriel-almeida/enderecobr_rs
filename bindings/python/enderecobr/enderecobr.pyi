@@ -704,7 +704,7 @@ class Padronizador:
         ...
 
     def adicionar(self, regex: str, substituicao: str) -> None:
-        """
+        r"""
         Adiciona uma regra simples de substituição.
 
         Toda ocorrência de ``regex`` será substituída por ``substituicao``.
@@ -794,7 +794,7 @@ class Padronizador:
         ...
 
     def preparar(self) -> None:
-        """
+        r"""
         Recompila o conjunto de expressões regulares após adicionar regras manualmente.
 
         Deve ser chamado após ``Padronizador.adicionar`` ou
