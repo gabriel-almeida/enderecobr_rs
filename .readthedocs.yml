@@ -7,10 +7,6 @@ build:
   tools:
     python: "3"
     rust: latest
-  jobs:
-    pre_install:
-      - pip install maturin
-      - cd ./bindings/python && VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH maturin develop
 python:
   install:
     - method: pip
