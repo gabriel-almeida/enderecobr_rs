@@ -290,7 +290,7 @@ pub fn criar_padronizador_logradouros() -> Padronizador {
         .adicionar(r"\b(\d+) DE? DEZ(EMBRO)?\b", "$1 DE DEZEMBRO")
 
         // Remove sequencias de coisas que não são letras ou números do inicio e do final
-        .adicionar(r"^[^A-Z0-9(]+|[^A-Z0-9)]+$", "")
+        // .adicionar(r"^[^A-Z0-9(]+|[^A-Z0-9)]+$", "")
     ;
 
     // ALM é um caso complicado, pode ser alameda ou almirante. Inclusive no mesmo endereço podem aparecer os dois rs
