@@ -2,7 +2,7 @@
 
 | ***Rust*** | ***Python*** | ***R*** |
 |-----|-----|-----|
-| [![crates.io Latest Release](https://img.shields.io/crates/v/enderecobr_rs.svg)](https://crates.io/crates/enderecobr_rs) <br /> [![docs.rs Rust](https://docs.rs/enderecobr_rs/badge.svg)](https://docs.rs/enderecobr_rs/) <br /> [![codecov](https://codecov.io/gh/ipea/enderecobr_rs/graph/badge.svg?token=ckgU5oGbxf)](https://codecov.io/gh/ipea/enderecobr_rs) <br /> [![CI](https://github.com/ipea/enderecobr_rs/workflows/CI/badge.svg)](https://github.com/ipea/enderecobr_rs/actions) <br /> ![Crates.io Downloads (latest version)](https://img.shields.io/crates/dv/enderecobr_rs) | [![PyPi Latest Release](https://img.shields.io/pypi/v/enderecobr.svg)](https://pypi.org/project/enderecobr) <br /> [![Downloads](https://static.pepy.tech/badge/enderecobr)](https://pepy.tech/project/enderecobr) <br /> [![readthedocs Python](https://app.readthedocs.org/projects/enderecobr-py/badge)](https://enderecobr-py.readthedocs.io) | [![R-repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/ipea/enderecobr) <br /> [![CRAN status](https://www.r-pkg.org/badges/version/enderecobr)](https://CRAN.R-project.org/package=enderecobr) <br /> [![CRAN/METACRAN Total downloads](https://cranlogs.r-pkg.org/badges/grand-total/enderecobr?color=blue)](https://CRAN.R-project.org/package=enderecobr) |
+| [![crates.io Latest Release](https://img.shields.io/crates/v/enderecobr_rs.svg)](https://crates.io/crates/enderecobr_rs) <br /> [![docs.rs Rust](https://docs.rs/enderecobr_rs/badge.svg)](https://docs.rs/enderecobr_rs/) <br /> [![codecov](https://codecov.io/gh/ipea/enderecobr_rs/graph/badge.svg?token=ckgU5oGbxf)](https://codecov.io/gh/ipea/enderecobr_rs) <br /> [![CI](https://github.com/ipea/enderecobr_rs/workflows/CI/badge.svg)](https://github.com/ipea/enderecobr_rs/actions) <br /> ![Crates.io Downloads (total downloads)](https://img.shields.io/crates/d/enderecobr_rs) | [![PyPi Latest Release](https://img.shields.io/pypi/v/enderecobr.svg)](https://pypi.org/project/enderecobr) <br /> [![Downloads](https://static.pepy.tech/badge/enderecobr)](https://pepy.tech/project/enderecobr) <br /> [![readthedocs Python](https://app.readthedocs.org/projects/enderecobr-py/badge)](https://enderecobr-py.readthedocs.io) | [![R-repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/ipea/enderecobr) <br /> [![CRAN status](https://www.r-pkg.org/badges/version/enderecobr)](https://CRAN.R-project.org/package=enderecobr) <br /> [![CRAN/METACRAN Total downloads](https://cranlogs.r-pkg.org/badges/grand-total/enderecobr?color=blue)](https://CRAN.R-project.org/package=enderecobr) |
 
 
 
@@ -50,7 +50,7 @@ Ou adicionando em no seu `Cargo.toml`:
 
 ```toml
 [dependencies]
-enderecobr_rs = { version = "0.0.3" }
+enderecobr_rs = { version = "0.2.0" }
 ```
 
 ## Exemplo de uso
@@ -70,6 +70,25 @@ import enderecobr
 assert enderecobr.padronizar_logradouros("r. gen.. glicério") == "RUA GENERAL GLICERIO"
 assert enderecobr.padronizar_logradouros("QD1 LT2 CS3") == "QUADRA 1 LOTE 2 CASA 3"
 ```
+
+
+## Release
+
+```bash
+# Utilitário que ajuda a altera a versão nos arquivos necessários 
+# (Cargo.toml e pyproject.toml), além de fazr um commit deles e cria a tag no git.
+./bump-versao-release.sh 0.2.0
+
+# Faz o push do commit e da tag para o repositório principal.
+# O Github CI deve fazer o restante das checagens, compilações e gatilhos necessários.
+git push origin
+git push origin v0.2.0
+
+## Em caso de erro, antes de fazer o push, é possível reverter o commit e apagar a tag
+# git reset HEAD^
+# git tag -d v0.2.0
+```
+
 
 ## Nota <a href="https://www.ipea.gov.br"><img src="./assets/ipea_logo.png" alt="Ipea" align="right" width="300"/></a>
 
